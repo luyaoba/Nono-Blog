@@ -86,7 +86,7 @@ export default function AdminApp() {
   // 加载所有评论（包括待审核）
   useEffect(() => {
     if (!authToken) return;
-    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.luyaoba61.workers.dev'}/api/admin/comments`, {
+    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/admin/comments`, {
       headers: { Authorization: `Bearer ${authToken}` }
     })
       .then(r => r.json())

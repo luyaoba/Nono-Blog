@@ -5,7 +5,7 @@
 
 import type { Article, Project, Tag, Category, SiteSettings } from './data/mockAdminData';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://blog-api.luyaoba61.workers.dev';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz';
 
 // ===== 通用请求 =====
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

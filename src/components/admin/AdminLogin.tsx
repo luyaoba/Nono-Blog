@@ -22,7 +22,7 @@ export default function AdminLogin({ onLoginSuccess, onBackToHome }: AdminLoginP
 
     try {
       const res = await fetch(
-        (import.meta.env.VITE_API_URL || 'https://blog-api.luyaoba61.workers.dev') + '/api/auth/login',
+        (import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz') + '/api/auth/login',
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }
       );
       if (!res.ok) throw new Error('认证失败');
