@@ -103,6 +103,32 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json(articles);
   }
 
+  // 获取文章点赞数 + 当前 IP 是否已赞
+  if (path.match(/^\/api\/articles\/[^/]+\/likes$/) && method === 'GET') {
+    const id = path.split('/')[3];
+    const article = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
+    if (!article) return error('文章不存在', 404);
+    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+    const liked = await env.DB.prepare('SELECT 1 FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first();
+    return json({ likes: article.likes || 0, liked: !!liked });
+  }
+
+  // 点赞文章（IP 去重，24小时后可再次点赞）
+  if (path.match(/^\/api\/articles\/[^/]+\/like$/) && method === 'POST') {
+    const id = path.split('/')[3];
+    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+    // 检查 24 小时内是否已赞
+    const existing = await env.DB.prepare('SELECT created_at FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first() as any;
+    if (existing) {
+      const hours = (Date.now() - new Date(existing.created_at + 'Z').getTime()) / 3600000;
+      if (hours < 24) return error('24小时内只能点赞一次', 429);
+    }
+    await env.DB.prepare('INSERT OR REPLACE INTO article_likes_ip (article_id, ip_hash) VALUES (?, ?)').bind(id, ipHash).run();
+    await env.DB.prepare('UPDATE articles SET likes = likes + 1 WHERE id = ?').bind(id).run();
+    const updated = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
+    return json({ likes: updated.likes, liked: true });
+  }
+
   // 获取单篇文章
   if (path.startsWith('/api/articles/') && method === 'GET') {
     const id = path.split('/')[3];
@@ -157,32 +183,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     await env.DB.prepare('INSERT INTO comments (id, author, email, article_id, article_title, content, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
       .bind(id, body.author, body.email || '', body.articleId, body.articleTitle || '', body.content, now, 'pending').run();
     return json({ id, message: '评论已提交，等待审核' }, 201);
-  }
-
-  // 获取文章点赞数 + 当前 IP 是否已赞
-  if (path.match(/^\/api\/articles\/[^/]+\/likes$/) && method === 'GET') {
-    const id = path.split('/')[3];
-    const article = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
-    if (!article) return error('文章不存在', 404);
-    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
-    const liked = await env.DB.prepare('SELECT 1 FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first();
-    return json({ likes: article.likes || 0, liked: !!liked });
-  }
-
-  // 点赞文章（IP 去重，24小时后可再次点赞）
-  if (path.match(/^\/api\/articles\/[^/]+\/like$/) && method === 'POST') {
-    const id = path.split('/')[3];
-    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
-    // 检查 24 小时内是否已赞
-    const existing = await env.DB.prepare('SELECT created_at FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first() as any;
-    if (existing) {
-      const hours = (Date.now() - new Date(existing.created_at + 'Z').getTime()) / 3600000;
-      if (hours < 24) return error('24小时内只能点赞一次', 429);
-    }
-    await env.DB.prepare('INSERT OR REPLACE INTO article_likes_ip (article_id, ip_hash) VALUES (?, ?)').bind(id, ipHash).run();
-    await env.DB.prepare('UPDATE articles SET likes = likes + 1 WHERE id = ?').bind(id).run();
-    const updated = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
-    return json({ likes: updated.likes, liked: true });
   }
 
   // 获取站点配置
