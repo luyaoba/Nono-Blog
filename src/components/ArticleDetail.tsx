@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check } from "lucide-react";
 import { Article } from "../data/mockAdminData";
 import Giscus from "./Giscus";
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface ArticleDetailProps {
   articleId: string;
@@ -246,104 +247,8 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
             </p>
           </div>
 
-          {/* Article Body Columns */}
-          <div className={`prose max-w-none text-sm md:text-base leading-relaxed space-y-6 ${
-            isLight ? "text-slate-600" : "text-slate-300"
-          }`} id="detail-rich-content">
-            <h2 id="intro" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 1. 为什么选择 Cloudflare?
-            </h2>
-            <p>
-              在传统的 Web 架构中，全栈应用往往需要依赖专用的虚拟机、后端服务器集群以及高昂的网络专线。这不仅大幅提升了前期的运维门槛，也让中小型独立开发者在面临流量洪峰时需要时刻担心服务器瓶颈。
-            </p>
-            <p>
-              而 <strong>Cloudflare</strong> 提供了一整套云原生、全无服务器（Serverless）的现代基础设施。它利用遍布全球的 300 多个骨干节点（Edge Network），真正实现了“代码和数据在全球边缘同时运行”。相比传统的托管环境，它具备近乎零的冷启动时间，极度轻量的打包体积，以及业内首个全免费额度。
-            </p>
-
-            <h2 id="deploy" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 2. 极速 Cloudflare Pages 部署
-            </h2>
-            <p>
-              Cloudflare Pages 是专门为前端 SPA 以及主流 SSR 框架量身打造的静态/全栈托管平台。如果你使用的是 Vite 或 Next.js，仅需两步即可自动构建并发布：
-            </p>
-            <ul className={`list-disc list-inside space-y-2 pl-4 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              <li>绑定你的 GitHub 仓库</li>
-              <li>在配置中选择 <code>Next.js (App Router)</code> 并指定输出路径为 <code>dist</code></li>
-              <li>享受由全球 CDN 节点支撑的 50ms 以内的首包触达体验。</li>
-            </ul>
-
-            <h2 id="workers" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 3. Serverless Workers 路由与配置
-            </h2>
-            <p>
-              当静态页面需要连接动态 API 时，Cloudflare Workers 是绝佳 of 解决方案。其本质是在 V8 隔离沙盒中运行的极轻量 JavaScript 运行时。
-            </p>
-            <p>
-              通过配置一个简单的 <code>wrangler.toml</code> 配置文件，你可以轻松将关系型数据库 D1 以及分布式内存缓存 KV 注入到代码运行时中：
-            </p>
-
-            {/* Code Snippet Area matching the top right screenshot */}
-            <div className={`relative rounded-xl border overflow-hidden my-6 ${
-              isLight ? "border-[#e5e2db] bg-[#f8f7f4]" : "border-white/[0.04] bg-[#0c0d15]/80"
-            }`}>
-              <div className={`flex items-center justify-between px-4 py-2 border-b select-none ${
-                isLight ? "border-[#e5e2db] bg-[#f0efeb]" : "border-white/[0.04] bg-[#07080c]/80"
-              }`}>
-                <span className={`text-xs font-mono tracking-wider ${isLight ? "text-slate-600" : "text-slate-400"}`}>wrangler.toml</span>
-                <button
-                  onClick={copyCode}
-                  className={`p-1 rounded border transition-colors ${
-                    isLight 
-                      ? "bg-[#fefdfb] border-[#e5e2db] hover:bg-[#f0efeb] text-slate-400 hover:text-slate-700" 
-                      : "bg-white/[0.03] border-white/[0.05] hover:bg-white/[0.08] text-slate-400 hover:text-white"
-                  }`}
-                  title={isZh ? "复制代码" : "Copy Code"}
-                  id="detail-copy-code-btn"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <pre className={`p-4 overflow-x-auto text-[11px] md:text-xs font-mono leading-relaxed ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                <code>{`// wrangler.toml configuration file
-name = "cloudflare-fullstack-blog"
-main = "src/index.ts"
-compatibility_date = "2024-05-20"
-
-[vars]
-ENVIRONMENT = "production"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "nono-blog-db"
-database_id = "5a0bc01d-88ab-402a-992d-94c0b435ffaa"
-
-[[kv_namespaces]]
-binding = "CACHE"
-id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`}</code>
-              </pre>
-            </div>
-
-            <h2 id="database" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 4. D1 关系型数据库整合
-            </h2>
-            <p>
-              D1 是 Cloudflare 原生的、基于 SQLite 的嵌入式关系型数据库，具有极低的网络访问延迟。通过 Drizzle ORM，你可以像编写常规 SQL 语句一样对文章数据、留言信息进行实时检索。
-            </p>
-
-            <h2 id="custom-domain" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 5. 自定义域名与 SSL 锁
-            </h2>
-            <p>
-              部署完成后，通过仪表盘只需轻轻点击一下即可完成自定义域名解析，Cloudflare 会自动为您签发高安全性的 Universal SSL 证书，并自动重定向所有非安全 HTTP 流量。
-            </p>
-
-            <h2 id="summary" className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" /> 6. 结语与成本复盘
-            </h2>
-            <p>
-              在本篇实践中，我们将全栈应用的月度支出压缩到了惊人的 <strong>$0 元</strong>。Pages 无限制构建次数、Workers 每日 10 万次免费调用额度、D1 日均 500 万行读取，完美承载一个每日万级 PV 的个人太空美学博客系统。
-            </p>
-          </div>
+          {/* Article Body - Markdown 渲染 */}
+          <MarkdownRenderer content={targetArticle.content || ""} theme={theme} />
 
           {/* Detail actions */}
           <div className={`flex items-center gap-4 border-t pt-6 mt-12 ${isLight ? "border-[#e5e2db]" : "border-white/[0.04]"}`}>
