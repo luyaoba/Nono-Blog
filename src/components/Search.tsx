@@ -15,7 +15,7 @@ interface SearchResultsProps {
 }
 
 export default function SearchResults({ onArticleClick, onClearSearch, glowMode, theme = "glow", articles, language = "zh" }: SearchResultsProps) {
-  const [searchTerm, setSearchTerm] = useState("Cloudflare");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
@@ -23,10 +23,13 @@ export default function SearchResults({ onArticleClick, onClearSearch, glowMode,
 
   // Filter articles based on query
   const searchResults = articles.filter((article) => {
+    const q = searchTerm.toLowerCase();
     return (
-      article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
+      article.title.toLowerCase().includes(q) ||
+      article.summary.toLowerCase().includes(q) ||
+      article.category?.toLowerCase().includes(q) ||
+      article.content?.toLowerCase().includes(q) ||
+      article.tags.some((t) => t.toLowerCase().includes(q))
     );
   });
 
@@ -57,7 +60,7 @@ export default function SearchResults({ onArticleClick, onClearSearch, glowMode,
         </div>
         <input
           type="text"
-          placeholder="输入关键字搜索文章、分类或项目标签..."
+          placeholder={isZh ? "输入关键字搜索文章、分类或项目标签..." : "Search articles, categories or tags..."}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className={`w-full border rounded-2xl pl-13 pr-12 py-3.5 text-base tracking-wider outline-none transition-all ${
@@ -73,7 +76,7 @@ export default function SearchResults({ onArticleClick, onClearSearch, glowMode,
             className={`absolute right-4.5 top-1/2 -translate-y-1/2 p-1 rounded-full transition-all ${
               isLight ? "hover:bg-[#f0efeb] text-slate-500 hover:text-slate-700" : "hover:bg-white/10 text-slate-400 hover:text-white"
             }`}
-            title="清空搜索"
+            title={isZh ? "清空搜索" : "Clear search"}
           >
             <X className="w-4 h-4" />
           </button>
