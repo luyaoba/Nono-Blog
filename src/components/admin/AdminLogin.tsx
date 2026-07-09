@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { Lock, User, Terminal, ShieldAlert, ArrowRight } from "lucide-react";
 
 interface AdminLoginProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (token: string) => void;
   onBackToHome: () => void;
 }
 
@@ -15,24 +15,24 @@ export default function AdminLogin({ onLoginSuccess, onBackToHome }: AdminLoginP
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 从环境变量读取管理员凭证，未配置时回退到默认值
-  const ADMIN_USER = import.meta.env.VITE_ADMIN_USERNAME || "admin";
-  const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASSWORD || "admin";
-
-  const handleLogin = (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    // Simulate cyber handshake check
-    setTimeout(() => {
-      if (username.trim() === ADMIN_USER && password === ADMIN_PASS) {
-        onLoginSuccess();
-      } else {
-        setError("认证密钥不匹配。请输入正确的管理员账号。");
-        setIsLoading(false);
-      }
-    }, 1000);
+    try {
+      const res = await fetch(
+        (import.meta.env.VITE_API_URL || 'https://blog-api.luyaoba61.workers.dev') + '/api/auth/login',
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) }
+      );
+      if (!res.ok) throw new Error('认证失败');
+      const data = await res.json();
+      onLoginSuccess(data.token);
+    } catch {
+      setError("认证密钥不匹配。请输入正确的管理员账号。");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

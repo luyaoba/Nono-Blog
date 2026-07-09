@@ -8,6 +8,8 @@ import AdminPosts from "./components/admin/AdminPosts";
 import AdminTags from "./components/admin/AdminTags";
 import AdminComments from "./components/admin/AdminComments";
 import AdminSettings from "./components/admin/AdminSettings";
+import { api } from "./api";
+import { mapArticles, mapCategories, mapSettings } from "./api";
 
 import { 
   INITIAL_ARTICLES, 
@@ -42,60 +44,75 @@ export default function AdminApp() {
 
   const isLight = theme === "light";
 
-  // Admin auth state
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem("nono_admin_auth") === "true";
+  // Admin auth state - 存储 JWT token
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    return localStorage.getItem("nono_admin_token");
   });
+  const isAdminAuthenticated = !!authToken;
 
   const [adminActiveTab, setAdminActiveTab] = useState<string>("dashboard");
 
-  // Data states
-  const [articles, setArticles] = useState<Article[]>(() => {
-    const saved = localStorage.getItem("nono_articles");
-    return saved ? JSON.parse(saved) : INITIAL_ARTICLES;
-  });
-  const [tags, setTags] = useState<Tag[]>(() => {
-    const saved = localStorage.getItem("nono_tags");
-    return saved ? JSON.parse(saved) : INITIAL_TAGS;
-  });
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem("nono_categories");
-    if (saved) {
+  // Data states - 优先从 API 加载
+  const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
+  const [tags, setTags] = useState<Tag[]>(INITIAL_TAGS);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
+  const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+
+  // 从 API 加载数据
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
       try {
-        const parsed = JSON.parse(saved);
-        const valid = Array.isArray(parsed) ? parsed.filter((c: Category) => c.title && c.title.trim() !== "") : [];
-        return valid.length > 0 ? valid : INITIAL_CATEGORIES;
+        const [articlesRes, tagsRes, categoriesRes, settingsRes] = await Promise.all([
+          api.getArticles(),
+          api.getTags(),
+          api.getCategories(),
+          api.getSettings(),
+        ]);
+        if (cancelled) return;
+        if (articlesRes.length) setArticles(mapArticles(articlesRes));
+        if (tagsRes.length) setTags(tagsRes);
+        if (categoriesRes.length) setCategories(mapCategories(categoriesRes));
+        setSettings(mapSettings(settingsRes));
       } catch {
-        return INITIAL_CATEGORIES;
+        // API 不可用时回退到 INITIAL 数据
       }
     }
-    return INITIAL_CATEGORIES;
-  });
-  const [comments, setComments] = useState<Comment[]>(() => {
-    const saved = localStorage.getItem("nono_comments");
-    return saved ? JSON.parse(saved) : INITIAL_COMMENTS;
-  });
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    const saved = localStorage.getItem("nono_settings");
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
-  });
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
 
-  // Persist data
+  // 加载所有评论（包括待审核）
+  useEffect(() => {
+    if (!authToken) return;
+    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.luyaoba61.workers.dev'}/api/admin/comments`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length) {
+          setComments(data.map((c: any) => ({
+            id: c.id, author: c.author, avatar: c.avatar || '', email: c.email || '',
+            articleId: c.article_id, articleTitle: c.article_title,
+            content: c.content, date: c.date, status: c.status,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [authToken]);
+
+  // Keep theme in cache
   useEffect(() => { localStorage.setItem("nono_theme", theme); }, [theme]);
-  useEffect(() => { localStorage.setItem("nono_articles", JSON.stringify(articles)); }, [articles]);
-  useEffect(() => { localStorage.setItem("nono_tags", JSON.stringify(tags)); }, [tags]);
-  useEffect(() => { localStorage.setItem("nono_categories", JSON.stringify(categories)); }, [categories]);
-  useEffect(() => { localStorage.setItem("nono_comments", JSON.stringify(comments)); }, [comments]);
-  useEffect(() => { localStorage.setItem("nono_settings", JSON.stringify(settings)); }, [settings]);
 
   // Not authenticated: show login screen
   if (!isAdminAuthenticated) {
     return (
       <div className="min-h-screen bg-[#030408] text-slate-100 font-sans" id="admin-root">
         <AdminLogin
-          onLoginSuccess={() => {
-            setIsAdminAuthenticated(true);
-            localStorage.setItem("nono_admin_auth", "true");
+          onLoginSuccess={(token: string) => {
+            setAuthToken(token);
+            localStorage.setItem("nono_admin_token", token);
           }}
           onBackToHome={() => {
             window.location.href = "/";
@@ -180,8 +197,8 @@ export default function AdminApp() {
         activeSubTab={adminActiveTab}
         setActiveSubTab={setAdminActiveTab}
         onLogout={() => {
-          setIsAdminAuthenticated(false);
-          localStorage.removeItem("nono_admin_auth");
+          setAuthToken(null);
+          localStorage.removeItem("nono_admin_token");
         }}
         onExitConsole={() => {
           window.location.href = "/";

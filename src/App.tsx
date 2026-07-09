@@ -12,8 +12,9 @@ import Tags from "./components/Tags";
 import Contact from "./components/Contact";
 import { ArrowUp } from "lucide-react";
 import { translations } from "./data/translations";
+import { api } from "./api";
+import { mapArticles, mapProjects, mapCategories, mapSettings } from "./api";
 
-// Shared reactive database
 import { 
   INITIAL_ARTICLES, 
   INITIAL_PROJECTS, 
@@ -56,66 +57,47 @@ export default function App() {
   const glowMode = theme === "dark";
   const isLight = theme === "light";
 
-  // Dynamic state databases
-  const [articles, setArticles] = useState<Article[]>(() => {
-    const saved = localStorage.getItem("nono_articles");
-    return saved ? JSON.parse(saved) : INITIAL_ARTICLES;
-  });
-  const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem("nono_projects");
-    return saved ? JSON.parse(saved) : INITIAL_PROJECTS;
-  });
-  const [tags, setTags] = useState<Tag[]>(() => {
-    const saved = localStorage.getItem("nono_tags");
-    return saved ? JSON.parse(saved) : INITIAL_TAGS;
-  });
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem("nono_categories");
-    if (saved) {
+  // Dynamic state databases - 优先从 API 加载，INITIAL_* 作为加载时回退
+  const [loading, setLoading] = useState(true);
+  const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
+  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
+  const [tags, setTags] = useState<Tag[]>(INITIAL_TAGS);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
+  const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+
+  // 从 API 加载数据
+  useEffect(() => {
+    let cancelled = false;
+    async function loadData() {
       try {
-        const parsed = JSON.parse(saved);
-        // Auto-fix: filter out categories with empty titles
-        const valid = Array.isArray(parsed) ? parsed.filter((c: Category) => c.title && c.title.trim() !== "") : [];
-        return valid.length > 0 ? valid : INITIAL_CATEGORIES;
+        const [articlesRes, projectsRes, tagsRes, categoriesRes, settingsRes] = await Promise.all([
+          api.getArticles(),
+          api.getProjects(),
+          api.getTags(),
+          api.getCategories(),
+          api.getSettings(),
+        ]);
+        if (cancelled) return;
+        if (articlesRes.length) setArticles(mapArticles(articlesRes));
+        if (projectsRes.length) setProjects(mapProjects(projectsRes));
+        if (tagsRes.length) setTags(tagsRes);
+        if (categoriesRes.length) setCategories(mapCategories(categoriesRes));
+        setSettings(mapSettings(settingsRes));
       } catch {
-        return INITIAL_CATEGORIES;
+        // API 不可用时回退到 INITIAL 数据
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
-    return INITIAL_CATEGORIES;
-  });
-  const [comments, setComments] = useState<Comment[]>(() => {
-    const saved = localStorage.getItem("nono_comments");
-    return saved ? JSON.parse(saved) : INITIAL_COMMENTS;
-  });
-  const [settings, setSettings] = useState<SiteSettings>(() => {
-    const saved = localStorage.getItem("nono_settings");
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
-  });
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
 
   // Keep theme in cache
   useEffect(() => {
     localStorage.setItem("nono_theme", theme);
   }, [theme]);
-
-  // Keep state data in cache
-  useEffect(() => {
-    localStorage.setItem("nono_articles", JSON.stringify(articles));
-  }, [articles]);
-  useEffect(() => {
-    localStorage.setItem("nono_projects", JSON.stringify(projects));
-  }, [projects]);
-  useEffect(() => {
-    localStorage.setItem("nono_tags", JSON.stringify(tags));
-  }, [tags]);
-  useEffect(() => {
-    localStorage.setItem("nono_categories", JSON.stringify(categories));
-  }, [categories]);
-  useEffect(() => {
-    localStorage.setItem("nono_comments", JSON.stringify(comments));
-  }, [comments]);
-  useEffect(() => {
-    localStorage.setItem("nono_settings", JSON.stringify(settings));
-  }, [settings]);
 
   // Monitor scroll height to show back-to-top button
   useEffect(() => {

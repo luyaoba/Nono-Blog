@@ -1,0 +1,15 @@
+name = "blog-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "blog_db"
+database_id = "ec69017b-b51e-4134-8c22-a3b2619a99cb"
+
+[[r2_buckets]]
+binding = "IMAGES"
+bucket_name = "blog-images"
+
+[vars]
+JWT_SECRET = "change-this-in-production"
