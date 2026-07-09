@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check } from "lucide-react";
 import { Article } from "../data/mockAdminData";
@@ -16,8 +16,9 @@ interface ArticleDetailProps {
 }
 
 export default function ArticleDetail({ articleId, onBack, glowMode = true, theme = "glow", articles, language = "zh" }: ArticleDetailProps) {
-  const [likes, setLikes] = useState(42);
+  const [likes, setLikes] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -28,14 +29,30 @@ export default function ArticleDetail({ articleId, onBack, glowMode = true, them
   // Find the actual article in the reactive state database
   const targetArticle = articles.find((a) => a.id === articleId) || articles[0];
 
-  const handleLike = () => {
-    if (hasLiked) {
-      setLikes(likes - 1);
-      setHasLiked(false);
-    } else {
-      setLikes(likes + 1);
-      setHasLiked(true);
-    }
+  // 获取文章点赞状态
+  useEffect(() => {
+    if (!targetArticle?.id) return;
+    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/articles/${targetArticle.id}/likes`)
+      .then(res => res.json())
+      .then(data => {
+        setLikes(data.likes || 0);
+        setHasLiked(data.liked || false);
+      })
+      .catch(() => {});
+  }, [targetArticle?.id]);
+
+  const handleLike = async () => {
+    if (hasLiked || likeLoading || !targetArticle?.id) return;
+    setLikeLoading(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/articles/${targetArticle.id}/like`, { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setLikes(data.likes);
+        setHasLiked(true);
+      }
+    } catch {}
+    setLikeLoading(false);
   };
 
   const copyCode = () => {
