@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check } from "lucide-react";
 import { Article } from "../data/mockAdminData";
+import Giscus from "./Giscus";
 
 interface ArticleDetailProps {
   articleId: string;
@@ -356,6 +357,9 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`}</code>
               <span>{shareCopied ? (isZh ? "链接已复制" : "Link Copied") : (isZh ? "分享" : "Share")}</span>
             </button>
           </div>
+
+          {/* Giscus 评论区（GitHub 登录评论） */}
+          <Giscus theme={theme === "light" ? "light" : "dark"} />
         </div>
 
         {/* Right column: Sticky Navigation TOC (目录) */}
