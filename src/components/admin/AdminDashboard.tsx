@@ -11,7 +11,8 @@ import {
   Eye, 
   MessageSquare,
   Zap,
-  Clock
+  Clock,
+  Heart
 } from "lucide-react";
 import { Article, Tag, Comment } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
@@ -41,6 +42,8 @@ export default function AdminDashboard({
   const totalPosts = articles.length;
   const totalTags = tags.length;
   const totalViews = articles.reduce((sum, a) => sum + a.views, 0);
+  const totalLikes = articles.reduce((sum, a) => sum + (a.likes || 0), 0);
+  const pendingComments = comments.filter(c => c.status === "pending").length;
   const monthlyViews = totalViews + 3480; // Simulated constant offset for current month
 
   // Chart Coordinates & Data for SVG Line Drawing (30-day visit simulation)
@@ -293,8 +296,15 @@ export default function AdminDashboard({
                 <MessageSquare className="w-4 h-4 text-slate-400" />
                 <span className="text-sm font-semibold tracking-wide">{isZh ? "最新读者留言" : "Latest Comments"}</span>
               </div>
-              <span className="text-sm font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                {comments.length} {isZh ? "条留言" : "comments"}
+              <span className={`text-sm font-mono px-2.5 py-1 rounded-full border ${
+                pendingComments > 0
+                  ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                  : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+              }`}>
+                {pendingComments > 0
+                  ? `${pendingComments} ${isZh ? "待审核" : "pending"}`
+                  : `${comments.length} ${isZh ? "条留言" : "comments"}`
+                }
               </span>
             </button>
           </div>
@@ -348,6 +358,7 @@ export default function AdminDashboard({
 
                 <div className={`flex items-center gap-4 text-sm font-mono shrink-0 ${isLight ? "text-slate-600" : "text-slate-500"}`}>
                   <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> {art.views}</span>
+                  <span className="flex items-center gap-1"><Heart className="w-3.5 h-3.5" /> {art.likes || 0}</span>
                   <span className={`px-2 py-0.5 rounded text-sm font-semibold tracking-wider uppercase ${
                     art.status === "published" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border border-slate-500/20"
                   }`}>

@@ -8,6 +8,7 @@ export interface Article {
   tags: string[];
   readTime: string;
   views: number;
+  likes?: number; // Like count from D1
   comments: number;
   gradient: string;
   thumbnailType: "mesh" | "starfield" | "aurora" | "vortex";

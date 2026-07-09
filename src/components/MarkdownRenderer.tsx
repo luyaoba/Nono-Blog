@@ -1,10 +1,45 @@
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
+import { Copy, Check } from "lucide-react";
 
 interface MarkdownRendererProps {
   content: string;
   theme?: "glow" | "dark" | "light";
+}
+
+// 代码块组件（带复制按钮）
+function CodeBlock({ className, children, isLight }: { className?: string; children: React.ReactNode; isLight: boolean }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    const text = String(children).replace(/\n$/, "");
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className={`relative rounded-xl border overflow-hidden my-4 ${
+      isLight ? "border-[#e5e2db] bg-[#f8f7f4]" : "border-white/[0.04] bg-[#0c0d15]/80"
+    }`}>
+      <button
+        onClick={handleCopy}
+        className={`absolute top-2 right-2 p-1.5 rounded-md border transition-colors z-10 ${
+          isLight
+            ? "bg-[#fefdfb] border-[#e5e2db] hover:bg-[#f0efeb] text-slate-400 hover:text-slate-700"
+            : "bg-white/[0.03] border-white/[0.05] hover:bg-white/[0.08] text-slate-400 hover:text-white"
+        }`}
+        title="复制代码"
+      >
+        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+      </button>
+      <pre className={`p-4 overflow-x-auto text-[11px] md:text-xs font-mono leading-relaxed ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+        <code className={className}>{children}</code>
+      </pre>
+    </div>
+  );
 }
 
 export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRendererProps) {
@@ -53,13 +88,9 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
             const isBlock = className?.includes("hljs");
             if (isBlock) {
               return (
-                <div className={`relative rounded-xl border overflow-hidden my-4 ${
-                  isLight ? "border-[#e5e2db] bg-[#f8f7f4]" : "border-white/[0.04] bg-[#0c0d15]/80"
-                }`}>
-                  <pre className={`p-4 overflow-x-auto text-[11px] md:text-xs font-mono leading-relaxed ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                    <code className={className} {...props}>{children}</code>
-                  </pre>
-                </div>
+                <CodeBlock className={className} isLight={isLight}>
+                  {children}
+                </CodeBlock>
               );
             }
             return (
