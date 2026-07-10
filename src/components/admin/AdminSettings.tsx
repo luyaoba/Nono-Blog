@@ -18,15 +18,17 @@ import {
 } from "lucide-react";
 import { SiteSettings } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
+import { adminApi } from "../../api";
 
 interface AdminSettingsProps {
   settings: SiteSettings;
   onUpdateSettings: (updated: SiteSettings) => void;
+  authToken?: string | null;
   language?: "zh" | "en";
   theme?: "dark" | "light";
 }
 
-export default function AdminSettings({ settings, onUpdateSettings, language = "zh", theme = "dark" }: AdminSettingsProps) {
+export default function AdminSettings({ settings, onUpdateSettings, authToken, language = "zh", theme = "dark" }: AdminSettingsProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
   // Form States
@@ -51,7 +53,7 @@ export default function AdminSettings({ settings, onUpdateSettings, language = "
     setTimeout(() => setToast(null), 2500);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const updated: SiteSettings = {
       nickname,
       title,
@@ -65,8 +67,23 @@ export default function AdminSettings({ settings, onUpdateSettings, language = "
       mail,
       homeImage,
     };
+    // 更新本地状态
     onUpdateSettings(updated);
-    showToast(isZh ? "保存成功！" : "Settings saved successfully!");
+    // 持久化到 D1
+    if (authToken) {
+      try {
+        await adminApi.updateSettings(authToken, {
+          nickname, title, avatarUrl, bio,
+          siteTitle, siteSlogan, siteDescription,
+          github, twitter, mail, homeImage,
+        });
+        showToast(isZh ? "保存成功！" : "Settings saved successfully!");
+      } catch {
+        showToast(isZh ? "保存失败，请重试" : "Save failed, please retry");
+      }
+    } else {
+      showToast(isZh ? "已保存（仅本地）" : "Saved (local only)");
+    }
   };
 
   return (
@@ -142,9 +159,19 @@ export default function AdminSettings({ settings, onUpdateSettings, language = "
                       accept="image/*"
                       id="avatar-file-upload"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
+                        if (!file) return;
+                        if (authToken) {
+                          try {
+                            const res = await adminApi.uploadImage(authToken, file);
+                            if (res.url) setAvatarUrl(res.url);
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setAvatarUrl(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        } else {
                           const reader = new FileReader();
                           reader.onloadend = () => setAvatarUrl(reader.result as string);
                           reader.readAsDataURL(file);
@@ -294,9 +321,19 @@ export default function AdminSettings({ settings, onUpdateSettings, language = "
                       accept="image/*"
                       id="home-bg-file-upload"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
+                        if (!file) return;
+                        if (authToken) {
+                          try {
+                            const res = await adminApi.uploadImage(authToken, file);
+                            if (res.url) setHomeImage(res.url);
+                          } catch {
+                            const reader = new FileReader();
+                            reader.onloadend = () => setHomeImage(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        } else {
                           const reader = new FileReader();
                           reader.onloadend = () => setHomeImage(reader.result as string);
                           reader.readAsDataURL(file);

@@ -172,6 +172,7 @@ export default function AdminApp() {
           <AdminSettings
             settings={settings}
             onUpdateSettings={setSettings}
+            authToken={authToken}
             language={language}
             theme={theme}
           />
