@@ -230,6 +230,10 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert(isZh ? '图片大小不能超过 5MB' : 'Image size must be under 5MB');
+                          return;
+                        }
                         if (authToken) {
                           setLoadingText(isZh ? "上传头像中..." : "Uploading avatar...");
                           try {
@@ -417,6 +421,10 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert(isZh ? '图片大小不能超过 5MB' : 'Image size must be under 5MB');
+                          return;
+                        }
                         if (authToken) {
                           setLoadingText(isZh ? "上传背景图中..." : "Uploading image...");
                           try {

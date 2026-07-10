@@ -162,6 +162,10 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   const [dragOver, setDragOver] = useState(false);
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert(isZh ? '图片大小不能超过 5MB' : 'Image size must be under 5MB');
+      return;
+    }
     setLoadingText(isZh ? "上传图片中..." : "Uploading image...");
     try {
       if (authToken) {
@@ -179,6 +183,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
   // Unpublish confirmation
   const [unpublishTarget, setUnpublishTarget] = useState<string | null>(null);
+
+  // Publish confirmation
+  const [publishTarget, setPublishTarget] = useState<string | null>(null);
 
   // Delete
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -352,6 +359,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                                     src={art.coverImage} 
                                     alt="" 
                                     className="w-full h-full object-cover"
+                                    loading="lazy"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).style.display = 'none';
                                     }}
@@ -434,16 +442,11 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
                               {/* Unpublish/Publish toggle */}
                               <button
-                                onClick={async () => {
+                                onClick={() => {
                                   if (art.status === "published") {
                                     setUnpublishTarget(art.id);
                                   } else {
-                                    // 乐观更新
-                                    const updated = articles.map(a => a.id === art.id ? { ...a, status: "published" as const } : a);
-                                    onUpdateArticles(updated);
-                                    if (authToken) {
-                                      try { await adminApi.updateArticle(authToken, art.id, { status: 'published' }); } catch {}
-                                    }
+                                    setPublishTarget(art.id);
                                   }
                                 }}
                                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
@@ -657,6 +660,10 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) {
+                          alert(isZh ? '图片大小不能超过 5MB' : 'Image size must be under 5MB');
+                          return;
+                        }
                         if (authToken) {
                           setLoadingText(isZh ? "上传图片中..." : "Uploading...");
                           try {
@@ -880,6 +887,24 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
           }
         }}
         onCancel={() => setUnpublishTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!publishTarget}
+        title={isZh ? "确认发布文章" : "Confirm Publish"}
+        message={isZh ? "发布后文章将立即对外展示，确定要继续吗？" : "This article will be visible to the public. Continue?"}
+        confirmLabel={isZh ? "确认发布" : "Publish"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        onConfirm={async () => {
+          if (publishTarget) {
+            const updated = articles.map(a => a.id === publishTarget ? { ...a, status: "published" as const } : a);
+            onUpdateArticles(updated);
+            setPublishTarget(null);
+            if (authToken) {
+              try { await adminApi.updateArticle(authToken, publishTarget, { status: 'published' }); } catch {}
+            }
+          }
+        }}
+        onCancel={() => setPublishTarget(null)}
       />
     </div>
   );

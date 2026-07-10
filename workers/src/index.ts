@@ -353,7 +353,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   return error('未找到接口', 404);
 }
 
-// ===== 图片访问（公开） =====
+// ===== 图片访问（公开，强缓存） =====
 async function handleImage(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const key = url.pathname.replace('/api/images/', '');
@@ -361,7 +361,10 @@ async function handleImage(request: Request, env: Env): Promise<Response> {
   if (!object) return new Response('Not Found', { status: 404 });
   const headers = new Headers();
   if (object.httpMetadata?.contentType) headers.set('Content-Type', object.httpMetadata.contentType);
-  headers.set('Cache-Control', 'public, max-age=31536000');
+  // 强缓存：1年 + immutable（内容不变，浏览器不重复请求）
+  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  // Cloudflare CDN 缓存 30 天
+  headers.set('CDN-Cache-Control', 'public, max-age=2592000');
   return new Response(object.body, { headers });
 }
 
