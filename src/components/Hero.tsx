@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Code2, Server, Palette, Inbox, ArrowRight, Laptop, Cloud, PenTool, Wrench, Brain, Globe, Cpu, Terminal, Flame, Sparkles, Rocket } from "lucide-react";
+import { ArrowRight, Laptop, Cloud, PenTool, Wrench, Brain, Globe, Cpu, Terminal, Flame, Sparkles, Rocket, Server, Palette } from "lucide-react";
 import type { Category, Article } from "../data/mockAdminData";
 
 interface HeroProps {
@@ -25,21 +25,21 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
   const actualGlow = theme === "glow";
   const isZh = language === "zh";
 
-  // Icon mapping by iconType
+  // Icon mapping by iconType (smaller for cards)
   const iconMap: Record<string, React.ReactNode> = {
-    laptop: <Laptop className="w-6 h-6" />,
-    server: <Server className="w-6 h-6" />,
-    cloud: <Cloud className="w-6 h-6" />,
-    palette: <Palette className="w-6 h-6" />,
-    "pen-tool": <PenTool className="w-6 h-6" />,
-    wrench: <Wrench className="w-6 h-6" />,
-    brain: <Brain className="w-6 h-6" />,
-    globe: <Globe className="w-6 h-6" />,
-    cpu: <Cpu className="w-6 h-6" />,
-    terminal: <Terminal className="w-6 h-6" />,
-    flame: <Flame className="w-6 h-6" />,
-    sparkles: <Sparkles className="w-6 h-6" />,
-    rocket: <Rocket className="w-6 h-6" />,
+    laptop: <Laptop className="w-5 h-5" />,
+    server: <Server className="w-5 h-5" />,
+    cloud: <Cloud className="w-5 h-5" />,
+    palette: <Palette className="w-5 h-5" />,
+    "pen-tool": <PenTool className="w-5 h-5" />,
+    wrench: <Wrench className="w-5 h-5" />,
+    brain: <Brain className="w-5 h-5" />,
+    globe: <Globe className="w-5 h-5" />,
+    cpu: <Cpu className="w-5 h-5" />,
+    terminal: <Terminal className="w-5 h-5" />,
+    flame: <Flame className="w-5 h-5" />,
+    sparkles: <Sparkles className="w-5 h-5" />,
+    rocket: <Rocket className="w-5 h-5" />,
   };
 
   // Color mapping by iconType
@@ -61,10 +61,20 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
 
   // Compute category display list with article counts
   const validCats = categories.filter(c => c.title && c.title.trim());
-  const fallbackCats = isZh
-    ? [{ id: "frontend", title: "前端开发", iconType: "laptop", colorName: "前端开发" }, { id: "backend", title: "后端开发", iconType: "server", colorName: "后端开发" }, { id: "cloud", title: "运维部署", iconType: "cloud", colorName: "Cloudflare" }, { id: "design", title: "设计美学", iconType: "palette", colorName: "设计美学" }]
-    : [{ id: "frontend", title: "Frontend", iconType: "laptop", colorName: "前端开发" }, { id: "backend", title: "Backend", iconType: "server", colorName: "后端开发" }, { id: "cloud", title: "DevOps", iconType: "cloud", colorName: "Cloudflare" }, { id: "design", title: "Design", iconType: "palette", colorName: "设计美学" }];
-  const displayCats = (validCats.length > 0 ? validCats : fallbackCats).slice(0, 6);
+  const fallbackCatsZh = [
+    { id: "frontend", title: "前端开发", desc: "精研 React、Next.js、Vite 等前沿技术栈与极致性能优化。", iconType: "laptop", colorName: "前端开发" },
+    { id: "backend", title: "后端开发", desc: "构建高可用分布式服务，精进 Node.js、Go、数据库设计。", iconType: "server", colorName: "后端开发" },
+    { id: "cloud", title: "运维部署", desc: "分享 Cloudflare 生态、Docker 容器化与 CI/CD 极速部署实践。", iconType: "cloud", colorName: "Cloudflare" },
+    { id: "design", title: "设计美学", desc: "像素级前端还原技术，前沿视觉、排版美感设计与优雅微交互。", iconType: "palette", colorName: "设计美学" },
+  ];
+  const fallbackCatsEn = [
+    { id: "frontend", title: "Frontend", desc: "Deep dive into React, Next.js, Vite and pixel-perfect performance.", iconType: "laptop", colorName: "前端开发" },
+    { id: "backend", title: "Backend", desc: "Building distributed services with Node.js, Go, and elegant databases.", iconType: "server", colorName: "后端开发" },
+    { id: "cloud", title: "DevOps", desc: "Cloudflare ecosystem, Docker containerization and CI/CD best practices.", iconType: "cloud", colorName: "Cloudflare" },
+    { id: "design", title: "Design", desc: "Pixel-perfect UI, visual aesthetics, typography and elegant interactions.", iconType: "palette", colorName: "设计美学" },
+  ];
+  const fallbackCats = isZh ? fallbackCatsZh : fallbackCatsEn;
+  const displayCats = (validCats.length > 0 ? validCats : fallbackCats).slice(0, 4);
   const getCatsCount = (cat: any) => cat.colorName === "全部" ? articles.length : articles.filter(a => a.category === cat.colorName).length;
 
   return (
@@ -330,49 +340,86 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
           )}
         </motion.div>
 
-        {/* Category Icon Buttons Row - matching reference design */}
-        <div className="w-full mt-16 text-center">
-          <div className="flex items-center justify-center gap-8 md:gap-12 flex-wrap">
+        {/* Feature Grid Section - 领域专长卡片 */}
+        <div className="w-full mt-20 text-left">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+            <div>
+              <h2 className={`text-xl md:text-2xl font-bold tracking-wider ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+                {isZh ? "领域专长" : "Areas of Expertise"}
+              </h2>
+              <p className={`text-sm mt-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                {isZh ? "记录与开发相关的核心技能与技术领域" : "Documenting core skills and technical domains"}
+              </p>
+            </div>
+            <div className={`h-[1px] flex-grow mx-0 md:mx-6 hidden md:block ${isLight ? "bg-[#e5e2db]" : "bg-white/[0.04]"}`} />
+            <button
+              onClick={() => onNavigate("categories")}
+              className={`group inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase transition-all ${
+                isLight ? "text-indigo-600 hover:text-indigo-700" : "text-indigo-400 hover:text-indigo-300"
+              }`}
+            >
+              {isZh ? "浏览全部分类" : "All Categories"} <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="hero-feature-grids">
             {displayCats.map((cat, index) => {
               const count = getCatsCount(cat);
               const iconType = cat.iconType || "laptop";
               const colors = colorMap[iconType] || colorMap.laptop;
+              const desc = (cat as any).desc || "";
               return (
-                <motion.button
+                <motion.div
                   key={cat.id}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 + index * 0.08 }}
+                  transition={{ duration: 0.8, delay: 0.4 + index * 0.1 }}
                   onClick={() => onNavigate("articles")}
-                  className="group flex flex-col items-center gap-2.5 cursor-pointer"
+                  className={`group cursor-pointer p-6 rounded-2xl border backdrop-blur-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[200px] ${
+                    isLight
+                      ? "bg-[#fefdfb]/80 border-[#e5e2db]/60 hover:bg-[#fefdfb] hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
+                      : "bg-[#0c0d14]/60 border-white/[0.06] hover:border-white/[0.12] hover:bg-[#10121e]/60"
+                  }`}
+                  id={`hero-feature-card-${cat.id}`}
                 >
-                  <div className={`w-14 h-14 rounded-full flex items-center justify-center border transition-all duration-300 ${
-                    colors.bg
-                  } ${colors.border} ${colors.text} group-hover:scale-110 group-hover:shadow-lg ${
-                    isLight ? "group-hover:shadow-indigo-100" : "group-hover:shadow-indigo-500/20"
-                  }`}>
-                    {iconMap[iconType] || iconMap.laptop}
+                  <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
+                    isLight ? "from-indigo-500/5 to-transparent" : "from-indigo-500/10 to-transparent"
+                  }`} />
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className={`p-2 rounded-xl border transition-all duration-300 ${
+                        isLight
+                          ? "bg-[#f8f7f4] border-[#e5e2db]/60 group-hover:bg-indigo-50 group-hover:border-indigo-100"
+                          : `${colors.bg} ${colors.border} group-hover:bg-white/[0.05] group-hover:border-white/[0.1]`
+                      }`}>
+                        <span className={colors.text}>{iconMap[iconType] || iconMap.laptop}</span>
+                      </div>
+                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded border tracking-wide font-semibold ${
+                        isLight ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-white/5 text-slate-300 border-white/10"
+                      }`}>
+                        {count} {isZh ? "篇文章" : "articles"}
+                      </span>
+                    </div>
+                    <h3 className={`text-lg font-bold group-hover:translate-x-0.5 transition-all ${
+                      isLight ? "text-slate-800" : "text-slate-100 group-hover:text-white"
+                    }`}>
+                      {cat.title}
+                    </h3>
+                    {desc && (
+                      <p className={`text-sm line-clamp-2 mt-2 leading-relaxed ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                        {desc}
+                      </p>
+                    )}
                   </div>
-                  <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-200"}`}>{cat.title}</span>
-                  <span className={`text-xs font-mono px-2 py-0.5 rounded-full border ${
-                    isLight ? "bg-slate-50 border-slate-200 text-slate-500" : "bg-white/5 border-white/10 text-slate-400"
-                  }`}>
-                    {count} {isZh ? "篇文章" : "articles"}
-                  </span>
-                </motion.button>
+                  <div className="flex justify-end pt-2">
+                    <span className={`text-xs font-mono group-hover:text-indigo-500 transition-colors ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                      {isZh ? "探索更多 →" : "Explore →"}
+                    </span>
+                  </div>
+                </motion.div>
               );
             })}
           </div>
-
-          {/* Browse All link */}
-          <button
-            onClick={() => onNavigate("categories")}
-            className={`group inline-flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase mt-10 transition-all ${
-              isLight ? "text-indigo-600 hover:text-indigo-700" : "text-indigo-400 hover:text-indigo-300"
-            }`}
-          >
-            {isZh ? "浏览全部分类" : "All Categories"} <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-          </button>
         </div>
       </div>
     </div>
