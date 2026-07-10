@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Moon, Sun, Globe, Menu, X, Sparkles } from "lucide-react";
+import { Search, Globe, Menu, X, Sparkles } from "lucide-react";
 import { translations } from "../data/translations";
 
 interface NavbarProps {
@@ -10,7 +10,6 @@ interface NavbarProps {
   onSearchClick: () => void;
   isSearchActive: boolean;
   theme: "dark" | "light";
-  setTheme: (theme: "dark" | "light") => void;
   language: "zh" | "en";
   setLanguage: (lang: "zh" | "en") => void;
   settings?: {
@@ -25,7 +24,6 @@ export default function Navbar({
   onSearchClick,
   isSearchActive,
   theme,
-  setTheme,
   language,
   setLanguage,
   settings,
@@ -40,17 +38,6 @@ export default function Navbar({
     { id: "categories", label: t.navCategories },
     { id: "about", label: t.navAbout },
   ];
-
-  const cycleTheme = () => {
-    if (theme === "dark") setTheme("light");
-    else setTheme("dark");
-  };
-
-  const getThemeTitle = () => {
-    return language === "zh" 
-      ? (theme === "dark" ? "切换为浅色模式" : "切换为深色模式")
-      : (theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode");
-  };
 
   const isLight = theme === "light";
 
@@ -123,24 +110,6 @@ export default function Navbar({
             id="nav-search-btn"
           >
             <Search className="w-4 h-4" />
-          </button>
-
-          {/* Mode Switch */}
-          <button
-            onClick={cycleTheme}
-            className={`p-2 rounded-xl border transition-all duration-300 ${
-              isLight
-                ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/60 text-amber-500 hover:shadow-[0_2px_10px_rgba(245,158,11,0.12)] hover:border-amber-300"
-                : "bg-[#818cf8]/10 border-[#818cf8]/25 text-[#818cf8] shadow-[0_0_12px_rgba(129,140,248,0.15)]"
-            }`}
-            title={getThemeTitle()}
-            id="nav-glow-btn"
-          >
-            {theme === "dark" ? (
-              <Moon className="w-4 h-4 text-indigo-400" />
-            ) : (
-              <Sun className="w-4 h-4 text-amber-500" />
-            )}
           </button>
 
           {/* Lang */}
@@ -220,23 +189,6 @@ export default function Navbar({
           <div className={`flex flex-col gap-4 pt-4 border-t pl-3 ${
             isLight ? "border-[#e5e2db]" : "border-white/[0.05]"
           }`}>
-            <button
-              onClick={cycleTheme}
-              className="flex items-center gap-2 text-sm text-slate-400"
-              id="nav-mobile-glow-btn"
-            >
-              {theme === "dark" ? (
-                <Moon className="w-4 h-4 text-slate-400" />
-              ) : (
-                <Sun className="w-4 h-4 text-amber-500" />
-              )}
-              <span>
-                {theme === "dark" 
-                  ? (language === "zh" ? "深色模式" : "Dark Mode") 
-                  : (language === "zh" ? "浅色模式" : "Light Mode")}
-              </span>
-            </button>
-
             <button
               onClick={() => setLanguage(language === "zh" ? "en" : "zh")}
               className="flex items-center gap-2 text-sm text-slate-400"

@@ -34,6 +34,7 @@ export default function App() {
   const [isSearchActive, setIsSearchActive] = useState<boolean>(false);
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
   const [articlesFilter, setArticlesFilter] = useState<string>("全部");
+  const [articlesSearch, setArticlesSearch] = useState<string>("");
   const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Language state: zh (Chinese), en (English)
@@ -46,15 +47,10 @@ export default function App() {
     localStorage.setItem("nono_language", language);
   }, [language]);
 
-// Theme state: dark (pure black), light (light)
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("nono_theme");
-    const allowed = ["dark", "light"];
-    return (allowed.includes(saved || "") ? saved : "dark") as "dark" | "light";
-  });
-
-  const glowMode = theme === "dark";
-  const isLight = theme === "light";
+// Theme: 强制深色模式
+  const theme = "dark" as const;
+  const glowMode = true;
+  const isLight = false;
 
   // Dynamic state databases - 优先从 API 加载，INITIAL_* 作为加载时回退
   const [loading, setLoading] = useState(true);
@@ -92,11 +88,6 @@ export default function App() {
     loadData();
     return () => { cancelled = true; };
   }, []);
-
-  // Keep theme in cache
-  useEffect(() => {
-    localStorage.setItem("nono_theme", theme);
-  }, [theme]);
 
   // Dynamic page title from settings
   useEffect(() => {
@@ -144,12 +135,14 @@ export default function App() {
     setIsSearchActive(false);
     setSelectedArticleId(null);
     setArticlesFilter("全部");
+    setArticlesSearch("");
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   // Quick navigation helpers from Hero categories or Tag clicks
   const handleSelectCategory = (categoryName: string) => {
     setArticlesFilter(categoryName);
+    setArticlesSearch("");
     setActiveTab("articles");
     setIsSearchActive(false);
     setSelectedArticleId(null);
@@ -157,15 +150,11 @@ export default function App() {
   };
 
   const handleSelectTag = (tagName: string) => {
-    // Search the tag by redirecting to articles with search queries matching it
-    setArticlesFilter("全部"); // clear category filters
     setActiveTab("articles");
     setIsSearchActive(false);
     setSelectedArticleId(null);
-    
-    // Smooth scroll and let the search handle it or set filter
-    const searchParam = tagName === "部署" ? "部署" : tagName;
-    setArticlesFilter(searchParam);
+    setArticlesFilter("全部");
+    setArticlesSearch(tagName);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -220,6 +209,7 @@ export default function App() {
           <Articles
             onArticleClick={handleArticleClick}
             initialFilter={articlesFilter}
+            initialSearch={articlesSearch}
             glowMode={glowMode}
             theme={theme}
             articles={articles.filter(a => a.status === "published")}
@@ -288,14 +278,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Warm ambient background for light mode */}
-      {isLight && (
-        <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-          <div className="absolute top-[-10%] left-1/3 w-[500px] h-[500px] rounded-full bg-amber-200/[0.06] filter blur-[100px]" />
-          <div className="absolute bottom-[-10%] right-1/4 w-[400px] h-[400px] rounded-full bg-indigo-200/[0.04] filter blur-[80px]" />
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(120,113,108,0.04)_1px,_transparent_1px),_linear-gradient(90deg,_rgba(120,113,108,0.04)_1px,_transparent_1px)] bg-[size:32px_32px] opacity-100" />
-        </div>
-      )}
+
 
       {/* Shared Header Navigation */}
       <Navbar
@@ -304,7 +287,6 @@ export default function App() {
         onSearchClick={handleSearchToggle}
         isSearchActive={isSearchActive}
         theme={theme}
-        setTheme={setTheme}
         language={language}
         setLanguage={setLanguage}
         settings={settings}
@@ -342,13 +324,9 @@ export default function App() {
               ? "© 2026 Nono | 基于 ❤️ 与 Cloudflare 构建"
               : "© 2026 Nono | Built with ❤️ and Cloudflare"}
           </div>
-          <div className="flex gap-4">
+          <div>
             <span className={`hover:text-indigo-500 cursor-pointer ${isLight ? "text-slate-500" : "text-slate-400"}`} onClick={() => handleTabChange("about")}>
               {language === "zh" ? "关于我" : "ABOUT"}
-            </span>
-            <span>/</span>
-            <span className={`hover:text-indigo-500 cursor-pointer ${isLight ? "text-slate-500" : "text-slate-400"}`} onClick={() => handleTabChange("contact")}>
-              {language === "zh" ? "联系我" : "CONTACT"}
             </span>
           </div>
         </div>

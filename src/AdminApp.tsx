@@ -35,14 +35,9 @@ export default function AdminApp() {
     localStorage.setItem("nono_language", language);
   }, [language]);
 
-  // Theme state
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("nono_theme");
-    const allowed = ["dark", "light"];
-    return (allowed.includes(saved || "") ? saved : "dark") as "dark" | "light";
-  });
-
-  const isLight = theme === "light";
+  // Theme: 强制深色模式
+  const theme = "dark" as const;
+  const isLight = false;
 
   // Admin auth state - 存储 JWT token
   const [authToken, setAuthToken] = useState<string | null>(() => {
@@ -220,7 +215,6 @@ export default function AdminApp() {
         }}
         language={language}
         theme={theme}
-        setTheme={setTheme}
       >
         {renderAdminChild()}
       </AdminLayout>

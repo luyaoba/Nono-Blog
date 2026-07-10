@@ -366,12 +366,12 @@ export default function Hero({ onNavigate, onSelectCategory, glowMode = true, th
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 + index * 0.1 }}
                   onClick={() => onSelectCategory ? onSelectCategory(cat.colorName || cat.title) : onNavigate("articles")}
-                  className={`group cursor-pointer p-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[200px] ${
+                  className={`group cursor-pointer p-6 rounded-2xl border backdrop-blur-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[200px] ${
                     isLight
                       ? "bg-white/50 border-[#e5e2db]/40 hover:bg-white/70 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
                       : settings?.homeImage
-                      ? "bg-black/20 border-white/[0.08] hover:bg-black/30 hover:border-white/[0.15]"
-                      : "bg-[#0c0d14]/60 border-white/[0.06] hover:border-white/[0.12] hover:bg-[#10121e]/60"
+                      ? "bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.08] hover:border-white/[0.12]"
+                      : "bg-[#0c0d14]/40 border-white/[0.06] hover:border-white/[0.12] hover:bg-[#10121e]/50"
                   }`}
                   id={`hero-feature-card-${cat.id}`}
                 >

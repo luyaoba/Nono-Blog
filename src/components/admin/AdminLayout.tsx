@@ -14,9 +14,7 @@ import {
   ChevronRight, 
   LogOut, 
   Globe,
-  CircleDot,
-  Moon,
-  Sun
+  CircleDot
 } from "lucide-react";
 import { translations } from "../../data/translations";
 
@@ -28,7 +26,6 @@ interface AdminLayoutProps {
   onExitConsole: () => void;
   language?: "zh" | "en";
   theme?: "dark" | "light";
-  setTheme?: (theme: "dark" | "light") => void;
   settings?: {
     nickname?: string;
     avatarUrl?: string;
@@ -43,7 +40,6 @@ export default function AdminLayout({
   onExitConsole,
   language = "zh",
   theme = "dark",
-  setTheme,
   settings,
 }: AdminLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -218,16 +214,6 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Theme Toggle */}
-            {setTheme && (
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className={`p-2 rounded-lg transition-all cursor-pointer ${isLight ? "border border-[#e5e2db] bg-[#f0efeb] text-slate-500 hover:text-slate-800 hover:border-[#d4d0c8]" : "border border-white/[0.08] bg-white/[0.02] text-slate-400 hover:text-white hover:border-white/[0.15] hover:bg-white/[0.04]"}`}
-                title={isZh ? (theme === "dark" ? "\u5207\u6362\u4e3a\u6d45\u8272\u6a21\u5f0f" : "\u5207\u6362\u4e3a\u6df1\u8272\u6a21\u5f0f") : (theme === "dark" ? "Switch to Light" : "Switch to Dark")}
-              >
-                {theme === "dark" ? <Moon className="w-4 h-4 text-indigo-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
-              </button>
-            )}
             <span className={`text-sm font-medium px-3 py-1.5 rounded-md ${isLight ? "text-slate-600 bg-[#f0efeb] border border-[#e5e2db]" : "text-slate-300 bg-white/[0.03] border border-white/[0.08]"}`}>
               {isZh ? "系统权限：站长专享" : "Access: Owner Only"}
             </span>

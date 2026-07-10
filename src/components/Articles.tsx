@@ -25,7 +25,8 @@ import { Category } from "../data/mockAdminData";
 
 interface ArticlesProps {
   onArticleClick: (id: string) => void;
-  initialFilter?: string; // Optional filtering passed from categories
+  initialFilter?: string;
+  initialSearch?: string;
   glowMode?: boolean;
   theme?: "glow" | "dark" | "light";
   articles?: Article[];
@@ -91,6 +92,7 @@ export const ARTICLES_DATA: Article[] = [
 export default function Articles({ 
   onArticleClick, 
   initialFilter = "全部", 
+  initialSearch = "",
   glowMode = true, 
   theme = "glow", 
   articles = ARTICLES_DATA,
@@ -98,28 +100,42 @@ export default function Articles({
   language = "zh"
 }: ArticlesProps) {
   const [selectedCategory, setSelectedCategory] = useState(initialFilter);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3; // Pagination limit per page
+  const [jumpPage, setJumpPage] = useState("");
+  const itemsPerPage = 5;
 
-  // Sync external filter changes (e.g. from Hero category click)
+  // Sync external filter changes
   useEffect(() => {
     setSelectedCategory(initialFilter);
   }, [initialFilter]);
+
+  // Sync external search changes
+  useEffect(() => {
+    setSearchQuery(initialSearch);
+  }, [initialSearch]);
 
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
   const isZh = language === "zh";
   const t = translations[language];
 
+  // Build category title→colorName mapping for filter matching
+  const categoryMap: Record<string, string[]> = {};
+  dynamicCategories.forEach(c => {
+    if (!c.title) return;
+    const keys = [c.title];
+    if (c.colorName && c.colorName !== c.title) keys.push(c.colorName);
+    categoryMap[c.title] = keys;
+  });
+
   // Compute category list dynamically from categories db
   const categoriesList = dynamicCategories.length > 0
     ? ["\u5168\u90e8", ...Array.from(new Set(dynamicCategories.map(c => c.title).filter(t => t && t.trim() !== ""))).filter(c => c !== "\u5168\u90e8")]
-    : (isZh ? ["\u5168\u90e8", "\u524d\u7aef\u5f00\u53d1", "\u540e\u7aef\u5f00\u53d1", "Cloudflare", "\u8bbe\u8ba1\u7f8e\u5b66", "\u5de5\u5177\u63a8\u8350"] : ["All", "Frontend", "Backend", "Cloudflare", "Design", "Tools"]);
+    : (isZh ? ["\u5168\u90e8"] : ["All"]);
   
-  // If only "全部" remains (all other categories had empty titles), use defaults
   const finalCategories = categoriesList.length <= 1
-    ? (isZh ? ["\u5168\u90e8", "\u524d\u7aef\u5f00\u53d1", "\u540e\u7aef\u5f00\u53d1", "Cloudflare", "\u8bbe\u8ba1\u7f8e\u5b66", "\u5de5\u5177\u63a8\u8350"] : ["All", "Frontend", "Backend", "Cloudflare", "Design", "Tools"])
+    ? categoriesList
     : categoriesList;
 
   // Reset page on filter/search change
@@ -129,11 +145,14 @@ export default function Articles({
 
   // Filter logic
   const filteredArticles = articles.filter((article) => {
-    const matchesCategory =
-      selectedCategory === "全部" || selectedCategory === "All" ||
-      article.category === selectedCategory ||
-      (selectedCategory === "后端开发" && article.tags.includes("Node.js")); // Treat Node.js as backend fallback
-    
+    let matchesCategory = false;
+    if (selectedCategory === "全部" || selectedCategory === "All") {
+      matchesCategory = true;
+    } else {
+      // Match article.category against both title and colorName
+      const matchKeys = categoryMap[selectedCategory] || [selectedCategory];
+      matchesCategory = matchKeys.includes(article.category);
+    }
     const matchesSearch =
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -357,57 +376,87 @@ export default function Articles({
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 mt-12" id="articles-pagination">
-          <button
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
-              currentPage === 1
-                ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
-                : isLight
-                ? "bg-[#fefdfb] border-[#e5e2db] text-slate-600 hover:bg-[#f8f7f4] cursor-pointer"
-                : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
-            }`}
-          >
-            {isZh ? "上一页" : "Prev"}
-          </button>
-          
-          <div className="flex items-center gap-1.5">
-            {Array.from({ length: totalPages }).map((_, idx) => {
-              const p = idx + 1;
-              return (
-                <button
-                  key={p}
-                  onClick={() => setCurrentPage(p)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    currentPage === p
-                      ? isLight
-                        ? "bg-indigo-600 text-white shadow-[0_4px_12px_rgba(99,102,241,0.2)]"
-                        : "bg-white text-slate-900 shadow-[0_0_12px_rgba(255,255,255,0.1)]"
-                      : isLight
-                      ? "bg-[#f8f7f4] hover:bg-[#f0efeb] text-slate-600 hover:text-slate-800"
-                      : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {p}
-                </button>
-              );
-            })}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12" id="articles-pagination">
+          <div className="flex items-center gap-3">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
+                currentPage === 1
+                  ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
+                  : isLight
+                  ? "bg-[#fefdfb] border-[#e5e2db] text-slate-600 hover:bg-[#f8f7f4] cursor-pointer"
+                  : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
+              }`}
+            >
+              {isZh ? "上一页" : "Prev"}
+            </button>
+            
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: totalPages }).map((_, idx) => {
+                const p = idx + 1;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setCurrentPage(p)}
+                    className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      currentPage === p
+                        ? isLight
+                          ? "bg-indigo-600 text-white shadow-[0_4px_12px_rgba(99,102,241,0.2)]"
+                          : "bg-white text-slate-900 shadow-[0_0_12px_rgba(255,255,255,0.1)]"
+                        : isLight
+                        ? "bg-[#f8f7f4] hover:bg-[#f0efeb] text-slate-600 hover:text-slate-800"
+                        : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
+                currentPage === totalPages
+                  ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
+                  : isLight
+                  ? "bg-[#fefdfb] border-[#e5e2db] text-slate-600 hover:bg-[#f8f7f4] cursor-pointer"
+                  : "bg-[#0c0d14]/40 border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
+              }`}
+            >
+              {isZh ? "下一页" : "Next"}
+            </button>
           </div>
 
-          <button
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
-              currentPage === totalPages
-                ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
-                : isLight
-                ? "bg-[#fefdfb] border-[#e5e2db] text-slate-600 hover:bg-[#f8f7f4] cursor-pointer"
-                : "bg-[#0c0d14]/40 border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
-            }`}
-          >
-            {isZh ? "下一页" : "Next"}
-          </button>
+          {/* Custom page jump */}
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <span>{isZh ? "跳转到" : "Go to"}</span>
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              value={jumpPage}
+              onChange={(e) => setJumpPage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const p = parseInt(jumpPage, 10);
+                  if (p >= 1 && p <= totalPages) {
+                    setCurrentPage(p);
+                    setJumpPage("");
+                  }
+                }
+              }}
+              className={`w-14 text-center border rounded-lg px-2 py-1.5 text-xs font-mono outline-none transition-all ${
+                isLight
+                  ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700 focus:border-indigo-400"
+                  : "bg-white/[0.03] border-white/[0.08] text-slate-200 focus:border-indigo-500/40"
+              }`}
+              placeholder={`${currentPage}`}
+            />
+            <span>{isZh ? `页 / 共 ${totalPages} 页` : `/ ${totalPages}`}</span>
+          </div>
         </div>
       )}
     </div>

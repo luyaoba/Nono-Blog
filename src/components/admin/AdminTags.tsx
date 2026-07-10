@@ -121,6 +121,11 @@ export default function AdminTags({
   const [isAdding, setIsAdding] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
 
+  // Pagination for tags and categories
+  const [tagPage, setTagPage] = useState(1);
+  const [catPage, setCatPage] = useState(1);
+  const itemsPerPage = 9;
+
   // Form Fields for Tags
   const [tagName, setTagName] = useState("");
   const [tagSlug, setTagSlug] = useState("");
@@ -494,8 +499,13 @@ export default function AdminTags({
           </AnimatePresence>
 
           {/* Grid of tags */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="tags-visual-grid">
-            {tags.map((tag) => (
+          {(() => {
+            const totalTagPages = Math.ceil(tags.length / itemsPerPage);
+            const pagedTags = tags.slice((tagPage - 1) * itemsPerPage, tagPage * itemsPerPage);
+            return (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="tags-visual-grid">
+                  {pagedTags.map((tag) => (
               <div
                 key={tag.id}
                 className={`rounded-2xl p-5 backdrop-blur-md relative overflow-hidden group transition-all duration-300 flex flex-col justify-between ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm hover:border-indigo-300" : "bg-[#0a0c14]/70 border border-white/[0.08] hover:border-indigo-500/20"}`}
@@ -536,7 +546,39 @@ export default function AdminTags({
                 </div>
               </div>
             ))}
-          </div>
+                </div>
+
+                {/* Tag pagination */}
+                {totalTagPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <button
+                      disabled={tagPage === 1}
+                      onClick={() => setTagPage(p => Math.max(p - 1, 1))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${tagPage === 1 ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent" : "text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.05] cursor-pointer"}`}
+                    >
+                      {isZh ? "上一页" : "Prev"}
+                    </button>
+                    {Array.from({ length: totalTagPages }).map((_, i) => (
+                      <button
+                        key={i + 1}
+                        onClick={() => setTagPage(i + 1)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${tagPage === i + 1 ? "bg-indigo-500 text-white" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"}`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      disabled={tagPage === totalTagPages}
+                      onClick={() => setTagPage(p => Math.min(p + 1, totalTagPages))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${tagPage === totalTagPages ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent" : "text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.05] cursor-pointer"}`}
+                    >
+                      {isZh ? "下一页" : "Next"}
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -645,13 +687,19 @@ export default function AdminTags({
           </AnimatePresence>
 
           {/* Grid of categories */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="categories-visual-grid">
-            {categories.filter(c => c.title && c.title.trim() !== "").length === 0 && (
-              <div className={`col-span-full py-12 text-center text-slate-500 text-sm font-mono rounded-2xl ${isLight ? "bg-[#fefdfb] border border-[#e5e2db]" : "bg-[#0c0e16]/30 border border-white/[0.08]"}`}>
-                {isZh ? "\u6682\u65e0\u5206\u7c7b\u6570\u636e\uff0c\u8bf7\u70b9\u51fb\u201c\u521b\u5efa\u65b0\u5206\u7c7b\u201d\u6dfb\u52a0" : "No categories yet. Click 'New Category' to add."}
-              </div>
-            )}
-            {categories.filter(c => c.title && c.title.trim() !== "").map((cat) => (
+          {(() => {
+            const validCats = categories.filter(c => c.title && c.title.trim() !== "");
+            const totalCatPages = Math.ceil(validCats.length / itemsPerPage);
+            const pagedCats = validCats.slice((catPage - 1) * itemsPerPage, catPage * itemsPerPage);
+            return (
+              <>
+                {validCats.length === 0 && (
+                  <div className={`py-12 text-center text-slate-500 text-sm font-mono rounded-2xl ${isLight ? "bg-[#fefdfb] border border-[#e5e2db]" : "bg-[#0c0e16]/30 border border-white/[0.08]"}`}>
+                    {isZh ? "\u6682\u65e0\u5206\u7c7b\u6570\u636e\uff0c\u8bf7\u70b9\u51fb\u201c\u521b\u5efa\u65b0\u5206\u7c7b\u201d\u6dfb\u52a0" : "No categories yet. Click 'New Category' to add."}
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="categories-visual-grid">
+                  {pagedCats.map((cat) => (
               <div
                 key={cat.id}
                 className={`border rounded-2xl p-5 backdrop-blur-md relative overflow-visible group transition-all duration-300 flex flex-col justify-between ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] hover:border-indigo-300" : "bg-[#0a0c14]/70 border-white/[0.08] hover:border-indigo-500/20"}`}
@@ -689,11 +737,41 @@ export default function AdminTags({
                 </div>
               </div>
             ))}
-          </div>
+                </div>
+
+                {/* Category pagination */}
+                {totalCatPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <button
+                      disabled={catPage === 1}
+                      onClick={() => setCatPage(p => Math.max(p - 1, 1))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${catPage === 1 ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent" : "text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.05] cursor-pointer"}`}
+                    >
+                      {isZh ? "上一页" : "Prev"}
+                    </button>
+                    {Array.from({ length: totalCatPages }).map((_, i) => (
+                      <button
+                        key={i + 1}
+                        onClick={() => setCatPage(i + 1)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all cursor-pointer ${catPage === i + 1 ? "bg-indigo-500 text-white" : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"}`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      disabled={catPage === totalCatPages}
+                      onClick={() => setCatPage(p => Math.min(p + 1, totalCatPages))}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${catPage === totalCatPages ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent" : "text-slate-400 border-white/[0.08] hover:text-white hover:bg-white/[0.05] cursor-pointer"}`}
+                    >
+                      {isZh ? "下一页" : "Next"}
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
-
-      {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
           <motion.div
