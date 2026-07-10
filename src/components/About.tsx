@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Github, Twitter, Mail, MapPin, ExternalLink, Calendar, Code } from "lucide-react";
+import { Github, Mail, MapPin, ExternalLink, Calendar, Code } from "lucide-react";
 import { translations } from "../data/translations";
 
 interface AboutProps {
@@ -15,6 +15,8 @@ interface AboutProps {
     nickname?: string;
     title?: string;
     avatarUrl?: string;
+    github?: string;
+    mail?: string;
   };
 }
 
@@ -152,7 +154,7 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
             {/* Social Link Handles */}
             <div className="flex items-center gap-3 mb-8" id="about-socials">
               <a
-                href="https://github.com/nono"
+                href={settings?.github || "https://github.com/nono"}
                 target="_blank"
                 rel="noreferrer"
                 className={`p-2.5 rounded-xl border transition-all ${
@@ -165,20 +167,7 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
                 <Github className="w-4 h-4" />
               </a>
               <a
-                href="https://twitter.com/nono"
-                target="_blank"
-                rel="noreferrer"
-                className={`p-2.5 rounded-xl border transition-all ${
-                  isLight
-                    ? "bg-slate-50 border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50"
-                    : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/5"
-                }`}
-                title="Twitter"
-              >
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a
-                href="mailto:hello@nono.com"
+                href={`mailto:${settings?.mail || "hello@nono.com"}`}
                 className={`p-2.5 rounded-xl border transition-all ${
                   isLight
                     ? "bg-slate-50 border-slate-200 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"

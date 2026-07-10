@@ -6,6 +6,7 @@ import type { Category, Article } from "../data/mockAdminData";
 
 interface HeroProps {
   onNavigate: (tab: string) => void;
+  onSelectCategory?: (categoryName: string) => void;
   glowMode?: boolean;
   theme?: "glow" | "dark" | "light";
   settings?: {
@@ -20,7 +21,7 @@ interface HeroProps {
   language?: "zh" | "en";
 }
 
-export default function Hero({ onNavigate, glowMode = true, theme = "glow", settings, categories = [], articles = [], language = "zh" }: HeroProps) {
+export default function Hero({ onNavigate, onSelectCategory, glowMode = true, theme = "glow", settings, categories = [], articles = [], language = "zh" }: HeroProps) {
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
   const isZh = language === "zh";
@@ -364,10 +365,12 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 + index * 0.1 }}
-                  onClick={() => onNavigate("articles")}
-                  className={`group cursor-pointer p-6 rounded-2xl border backdrop-blur-md transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[200px] ${
+                  onClick={() => onSelectCategory ? onSelectCategory(cat.colorName || cat.title) : onNavigate("articles")}
+                  className={`group cursor-pointer p-6 rounded-2xl border backdrop-blur-sm transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[200px] ${
                     isLight
-                      ? "bg-[#fefdfb]/80 border-[#e5e2db]/60 hover:bg-[#fefdfb] hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
+                      ? "bg-white/50 border-[#e5e2db]/40 hover:bg-white/70 hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
+                      : settings?.homeImage
+                      ? "bg-black/20 border-white/[0.08] hover:bg-black/30 hover:border-white/[0.15]"
                       : "bg-[#0c0d14]/60 border-white/[0.06] hover:border-white/[0.12] hover:bg-[#10121e]/60"
                   }`}
                   id={`hero-feature-card-${cat.id}`}

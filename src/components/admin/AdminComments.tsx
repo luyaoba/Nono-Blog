@@ -10,7 +10,9 @@ import {
   Clock, 
   Mail, 
   BookOpen, 
-  Filter
+  Filter,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { Comment } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
@@ -18,11 +20,12 @@ import { translations } from "../../data/translations";
 interface AdminCommentsProps {
   comments: Comment[];
   onUpdateComments: (updated: Comment[]) => void;
+  onUpdateStatus?: (id: string, status: string) => void;
   language?: "zh" | "en";
   theme?: "dark" | "light";
 }
 
-export default function AdminComments({ comments, onUpdateComments, language = "zh", theme = "dark" }: AdminCommentsProps) {
+export default function AdminComments({ comments, onUpdateComments, onUpdateStatus, language = "zh", theme = "dark" }: AdminCommentsProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
   const handleDelete = (id: string) => {
@@ -78,8 +81,18 @@ export default function AdminComments({ comments, onUpdateComments, language = "
                       {comm.date}
                     </span>
 
-                    <span className="text-sm px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase font-mono tracking-wider">
-                      {isZh ? "已发布" : "Published"}
+                    <span className={`text-sm px-2 py-0.5 rounded-md font-bold uppercase font-mono tracking-wider ${
+                      comm.status === "pending"
+                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                        : comm.status === "spam"
+                        ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                        : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                    }`}>
+                      {comm.status === "pending"
+                        ? (isZh ? "待审核" : "Pending")
+                        : comm.status === "spam"
+                        ? (isZh ? "垃圾" : "Spam")
+                        : (isZh ? "已发布" : "Published")}
                     </span>
                   </div>
 
@@ -97,6 +110,28 @@ export default function AdminComments({ comments, onUpdateComments, language = "
 
                 {/* Operations buttons */}
                 <div className={`flex items-center gap-2 shrink-0 md:self-center pt-3 md:pt-0 w-full md:w-auto justify-end ${isLight ? "border-t border-[#e5e2db] md:border-none" : "border-t border-white/[0.06] md:border-none"}`}>
+                  {/* Approve button (only for pending) */}
+                  {comm.status === "pending" && onUpdateStatus && (
+                    <button
+                      onClick={() => onUpdateStatus(comm.id, "approved")}
+                      className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer flex items-center gap-1.5 text-sm font-semibold px-3"
+                      title={isZh ? "批准发布" : "Approve"}
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{isZh ? "批准" : "Approve"}</span>
+                    </button>
+                  )}
+                  {/* Reject button (only for pending) */}
+                  {comm.status === "pending" && onUpdateStatus && (
+                    <button
+                      onClick={() => onUpdateStatus(comm.id, "spam")}
+                      className="p-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 transition-all cursor-pointer flex items-center gap-1.5 text-sm font-semibold px-3"
+                      title={isZh ? "标记为垃圾" : "Mark as spam"}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>{isZh ? "拒绝" : "Reject"}</span>
+                    </button>
+                  )}
                   {/* Delete button */}
                   <button
                     onClick={() => handleDelete(comm.id)}

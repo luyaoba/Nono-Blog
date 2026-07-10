@@ -163,6 +163,19 @@ export default function AdminApp() {
           <AdminComments
             comments={comments}
             onUpdateComments={setComments}
+            onUpdateStatus={async (id, status) => {
+              try {
+                await fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/admin/comments/${id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${authToken}`,
+                  },
+                  body: JSON.stringify({ status }),
+                });
+                setComments(prev => prev.map(c => c.id === id ? { ...c, status: status as any } : c));
+              } catch {}
+            }}
             language={language}
             theme={theme}
           />
@@ -197,6 +210,7 @@ export default function AdminApp() {
       <AdminLayout
         activeSubTab={adminActiveTab}
         setActiveSubTab={setAdminActiveTab}
+        settings={settings}
         onLogout={() => {
           setAuthToken(null);
           localStorage.removeItem("nono_admin_token");

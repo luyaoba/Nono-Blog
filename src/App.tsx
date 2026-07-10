@@ -9,7 +9,6 @@ import Categories from "./components/Categories";
 import About from "./components/About";
 import SearchResults from "./components/Search";
 import Tags from "./components/Tags";
-import Contact from "./components/Contact";
 import { ArrowUp } from "lucide-react";
 import { translations } from "./data/translations";
 import { api } from "./api";
@@ -215,7 +214,7 @@ export default function App() {
     // Fallback standard tabs
     switch (activeTab) {
       case "home":
-        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} settings={settings} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
+        return <Hero onNavigate={handleTabChange} onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} settings={settings} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
       case "articles":
         return (
           <Articles
@@ -232,10 +231,8 @@ export default function App() {
         return <Categories onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
       case "about":
         return <About glowMode={glowMode} theme={theme} language={language} settings={settings} />;
-      case "contact":
-        return <Contact glowMode={glowMode} theme={theme} language={language} />;
       default:
-        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
+        return <Hero onNavigate={handleTabChange} onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
     }
   };
 

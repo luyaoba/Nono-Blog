@@ -102,6 +102,11 @@ export default function Articles({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 3; // Pagination limit per page
 
+  // Sync external filter changes (e.g. from Hero category click)
+  useEffect(() => {
+    setSelectedCategory(initialFilter);
+  }, [initialFilter]);
+
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
   const isZh = language === "zh";

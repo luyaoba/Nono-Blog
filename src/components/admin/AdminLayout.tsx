@@ -29,17 +29,22 @@ interface AdminLayoutProps {
   language?: "zh" | "en";
   theme?: "dark" | "light";
   setTheme?: (theme: "dark" | "light") => void;
+  settings?: {
+    nickname?: string;
+    avatarUrl?: string;
+  };
 }
 
 export default function AdminLayout({ 
   children, 
   activeSubTab, 
   setActiveSubTab, 
-  onLogout,
+  onLogout, 
   onExitConsole,
   language = "zh",
   theme = "dark",
-  setTheme
+  setTheme,
+  settings,
 }: AdminLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const t = translations[language];
@@ -90,7 +95,7 @@ export default function AdminLayout({
                   onClick={onExitConsole}
                 >
                   <span className={`text-lg font-extrabold whitespace-nowrap ${isLight ? "text-slate-800" : "text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-indigo-300"}`}>
-                    Nono Console
+                    {settings?.nickname || "Nono"} Console
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8] shrink-0" />
                 </motion.div>
@@ -121,13 +126,14 @@ export default function AdminLayout({
           <div className={`px-4 ${isCollapsed ? "text-center" : ""}`}>
             <div className={`flex items-center gap-3 p-3 rounded-2xl transition-colors ${isLight ? "bg-[#f0efeb] border border-[#e5e2db]" : "bg-white/[0.02] border border-white/[0.06]"} ${isCollapsed ? "justify-center" : ""}`}>
               <img
-                src="https://api.dicebear.com/7.x/pixel-art/svg?seed=nono"
-                alt="Nono"
+                src={settings?.avatarUrl || "https://api.dicebear.com/7.x/pixel-art/svg?seed=nono"}
+                alt={settings?.nickname || "Nono"}
+                referrerPolicy="no-referrer"
                 className={`w-9 h-9 rounded-xl shrink-0 object-cover ${isLight ? "border border-[#e5e2db] bg-[#f0efeb]" : "border border-white/10 bg-[#0f111a]"}`}
               />
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <h4 className={`text-sm font-semibold tracking-wider truncate ${isLight ? "text-slate-800" : "text-white"}`}>Nono</h4>
+                  <h4 className={`text-sm font-semibold tracking-wider truncate ${isLight ? "text-slate-800" : "text-white"}`}>{settings?.nickname || "Nono"}</h4>
                   <p className={`text-xs font-medium tracking-wide ${isLight ? "text-indigo-600" : "text-indigo-400"}`}>{isZh ? "主站创作者" : "Site Creator"}</p>
                 </div>
               )}

@@ -39,7 +39,6 @@ export default function Navbar({
     { id: "articles", label: t.navArticles },
     { id: "categories", label: t.navCategories },
     { id: "about", label: t.navAbout },
-    { id: "contact", label: t.navContact },
   ];
 
   const cycleTheme = () => {
