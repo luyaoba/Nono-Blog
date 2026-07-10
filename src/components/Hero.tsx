@@ -16,6 +16,10 @@ interface HeroProps {
     siteSloganEn?: string;
     siteNotice?: string;
     homeImage?: string;
+    categoriesTitle?: string;
+    categoriesSubtitle?: string;
+    categoriesTitleEn?: string;
+    categoriesSubtitleEn?: string;
   };
   categories?: Category[];
   articles?: Article[];
@@ -348,15 +352,15 @@ export default function Hero({ onNavigate, onSelectCategory, glowMode = true, th
         </motion.div>
         )}
 
-        {/* Feature Grid Section - 领域专长卡片 */}
+        {/* Feature Grid Section - 领域卡片 */}
         <div className="w-full mt-20 text-left">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
               <h2 className={`text-xl md:text-2xl font-bold tracking-wider ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-                {isZh ? "领域专长" : "Areas of Expertise"}
+                {isZh ? (settings?.categoriesTitle || "领域") : (settings?.categoriesTitleEn || "Domains")}
               </h2>
               <p className={`text-sm mt-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {isZh ? "记录与开发相关的核心技能与技术领域" : "Documenting core skills and technical domains"}
+                {isZh ? (settings?.categoriesSubtitle || "记录与开发相关的核心技能与技术领域") : (settings?.categoriesSubtitleEn || "Documenting core skills and technical domains")}
               </p>
             </div>
             <div className={`h-[1px] flex-grow mx-0 md:mx-6 hidden md:block ${isLight ? "bg-[#e5e2db]" : "bg-white/[0.04]"}`} />

@@ -251,12 +251,33 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json({ id, message: '文章已创建' }, 201);
   }
 
-  // 更新文章
+  // 更新文章（支持部分更新，只覆盖传入的字段）
   if (path.startsWith('/api/admin/articles/') && method === 'PUT') {
     const id = path.split('/')[4];
     const body = await request.json() as any;
-    await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, updated_at=datetime("now") WHERE id=?')
-      .bind(body.title, body.summary, body.content || '', body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '', id).run();
+    // 先读取现有数据，防止未传入的字段被覆盖为 null
+    const existing = await env.DB.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first() as any;
+    if (!existing) return error('文章不存在', 404);
+    const title = body.title !== undefined ? body.title : existing.title;
+    const summary = body.summary !== undefined ? body.summary : existing.summary;
+    const content = body.content !== undefined ? body.content : existing.content;
+    const category = body.category !== undefined ? body.category : existing.category;
+    const readTime = body.readTime !== undefined ? body.readTime : (existing.read_time || '');
+    const gradient = body.gradient !== undefined ? body.gradient : (existing.gradient || '');
+    const thumbnailType = body.thumbnailType !== undefined ? body.thumbnailType : (existing.thumbnail_type || 'starfield');
+    const status = body.status !== undefined ? body.status : existing.status;
+    const coverImage = body.coverImage !== undefined ? body.coverImage : (existing.cover_image || '');
+    const date = body.date !== undefined ? body.date : existing.date;
+    await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, date=?, updated_at=datetime("now") WHERE id=?')
+      .bind(title, summary, content || '', category, readTime, gradient, thumbnailType, status, coverImage, date, id).run();
+    // 更新标签关联（仅当传入 tags 时）
+    if (body.tags !== undefined && Array.isArray(body.tags)) {
+      await env.DB.prepare('DELETE FROM article_tags WHERE article_id = ?').bind(id).run();
+      for (const tagName of body.tags) {
+        const tag = await env.DB.prepare('SELECT id FROM tags WHERE name = ?').bind(tagName).first() as any;
+        if (tag) await env.DB.prepare('INSERT OR IGNORE INTO article_tags (article_id, tag_id) VALUES (?, ?)').bind(id, tag.id).run();
+      }
+    }
     return json({ message: '文章已更新' });
   }
 
