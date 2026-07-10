@@ -1,86 +1,90 @@
 "use client";
 
 import { motion } from "motion/react";
+import type { Tag } from "../data/mockAdminData";
 
 interface TagsProps {
   onSelectTag: (tag: string) => void;
+  tags?: Tag[];
   theme?: "glow" | "dark" | "light";
   language?: "zh" | "en";
 }
 
-export default function Tags({ onSelectTag, theme = "glow", language = "zh" }: TagsProps) {
-  const isLight = theme === "light";
-  const actualGlow = theme === "glow";
+const tagColors = [
+  { hover: "hover:border-blue-500/30", lightHover: "hover:border-blue-300", dot: "bg-blue-400" },
+  { hover: "hover:border-emerald-500/30", lightHover: "hover:border-emerald-300", dot: "bg-emerald-400" },
+  { hover: "hover:border-indigo-500/30", lightHover: "hover:border-indigo-300", dot: "bg-indigo-400" },
+  { hover: "hover:border-sky-500/30", lightHover: "hover:border-sky-300", dot: "bg-sky-400" },
+  { hover: "hover:border-pink-500/30", lightHover: "hover:border-pink-300", dot: "bg-pink-400" },
+  { hover: "hover:border-amber-500/30", lightHover: "hover:border-amber-300", dot: "bg-amber-400" },
+  { hover: "hover:border-cyan-500/30", lightHover: "hover:border-cyan-300", dot: "bg-cyan-400" },
+  { hover: "hover:border-purple-500/30", lightHover: "hover:border-purple-300", dot: "bg-purple-400" },
+  { hover: "hover:border-rose-500/30", lightHover: "hover:border-rose-300", dot: "bg-rose-400" },
+  { hover: "hover:border-teal-500/30", lightHover: "hover:border-teal-300", dot: "bg-teal-400" },
+];
 
-  // 16 beautiful floating cloud tags based on the picture
-  const tagsList = [
-    { name: "Cloudflare", count: 6, glow: isLight ? "hover:border-blue-300 hover:shadow-xs" : "hover:border-blue-500/30 hover:shadow-[0_0_12px_rgba(59,130,246,0.1)]" },
-    { name: "Next.js", count: 4, glow: isLight ? "hover:border-slate-300 hover:shadow-xs" : "hover:border-slate-500/30 hover:shadow-[0_0_12px_rgba(255,255,255,0.06)]" },
-    { name: "TypeScript", count: 5, glow: isLight ? "hover:border-sky-300 hover:shadow-xs" : "hover:border-sky-500/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.1)]" },
-    { name: "部署", count: 6, glow: isLight ? "hover:border-emerald-300 hover:shadow-xs" : "hover:border-emerald-500/30 hover:shadow-[0_0_12px_rgba(52,211,153,0.1)]" },
-    { name: "前端", count: 6, glow: isLight ? "hover:border-indigo-300 hover:shadow-xs" : "hover:border-indigo-500/30 hover:shadow-[0_0_12px_rgba(129,140,248,0.1)]" },
-    { name: "设计", count: 5, glow: isLight ? "hover:border-pink-300 hover:shadow-xs" : "hover:border-pink-500/30 hover:shadow-[0_0_12px_rgba(236,72,153,0.1)]" },
-    { name: "Vue", count: 3, glow: isLight ? "hover:border-emerald-300 hover:shadow-xs" : "hover:border-emerald-500/30 hover:shadow-[0_0_12px_rgba(16,185,129,0.1)]" },
-    { name: "React", count: 4, glow: isLight ? "hover:border-cyan-300 hover:shadow-xs" : "hover:border-cyan-500/30 hover:shadow-[0_0_12px_rgba(6,182,212,0.1)]" },
-    { name: "Node.js", count: 3, glow: isLight ? "hover:border-green-300 hover:shadow-xs" : "hover:border-green-500/30 hover:shadow-[0_0_12px_rgba(34,197,94,0.1)]" },
-    { name: "MongoDB", count: 3, glow: isLight ? "hover:border-green-400 hover:shadow-xs" : "hover:border-green-600/30 hover:shadow-[0_0_12px_rgba(22,163,74,0.1)]" },
-    { name: "Docker", count: 2, glow: isLight ? "hover:border-blue-300 hover:shadow-xs" : "hover:border-blue-400/30 hover:shadow-[0_0_12px_rgba(96,165,250,0.1)]" },
-    { name: "Drizzle", count: 2, glow: isLight ? "hover:border-yellow-400 hover:shadow-xs" : "hover:border-yellow-500/30 hover:shadow-[0_0_12px_rgba(234,179,8,0.1)]" },
-    { name: "Go", count: 3, glow: isLight ? "hover:border-sky-300 hover:shadow-xs" : "hover:border-sky-400/30 hover:shadow-[0_0_12px_rgba(56,189,248,0.1)]" },
-    { name: "PostgreSQL", count: 2, glow: isLight ? "hover:border-blue-400 hover:shadow-xs" : "hover:border-blue-600/30 hover:shadow-[0_0_12px_rgba(29,78,216,0.1)]" },
-    { name: "Linux", count: 3, glow: isLight ? "hover:border-amber-300 hover:shadow-xs" : "hover:border-amber-500/30 hover:shadow-[0_0_12px_rgba(245,158,11,0.1)]" },
-    { name: "Git", count: 2, glow: isLight ? "hover:border-red-300 hover:shadow-xs" : "hover:border-red-500/30 hover:shadow-[0_0_12px_rgba(239,68,68,0.1)]" },
-  ];
+export default function Tags({ onSelectTag, tags = [], theme = "glow", language = "zh" }: TagsProps) {
+  const isLight = theme === "light";
+  const isZh = language === "zh";
+
+  // Fallback if no tags from API
+  const displayTags: { name: string; count: number }[] = tags.length > 0
+    ? tags.map(t => ({ name: t.name, count: t.count || 0 }))
+    : [
+        { name: "Cloudflare", count: 6 }, { name: "Next.js", count: 4 },
+        { name: "TypeScript", count: 5 }, { name: "React", count: 4 },
+        { name: "Vue", count: 3 }, { name: "Node.js", count: 3 },
+        { name: "Docker", count: 2 }, { name: "Go", count: 3 },
+        { name: "PostgreSQL", count: 2 }, { name: "Linux", count: 3 },
+        { name: "Git", count: 2 }, { name: "Drizzle", count: 2 },
+      ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-28 pb-20 relative" id="tags-section">
-      {/* Background Glow Overlay */}
-      {actualGlow && (
-        <div className="absolute top-[20%] left-[30%] w-[400px] h-[400px] rounded-full bg-cyan-600/[0.015] blur-[150px] pointer-events-none" />
-      )}
-
-      {/* Header Info */}
-      <div className="mb-12">
-        <h1 className={`text-3xl font-extrabold tracking-wider flex items-center gap-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-          标签
-          <span className={`text-xs font-mono font-normal px-2 py-0.5 rounded border ${
+    <div className="max-w-7xl mx-auto relative" id="tags-section">
+      {/* Header */}
+      <div className="mb-8">
+        <h2 className={`text-2xl font-bold tracking-wider flex items-center gap-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+          {isZh ? "标签" : "Tags"}
+          <span className={`text-xs font-mono font-normal px-2.5 py-0.5 rounded border ${
             isLight ? "border-indigo-100 bg-indigo-50/50 text-indigo-600" : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400"
           }`}>
-            共 {tagsList.length} 个标签
+            {isZh ? `共 ${displayTags.length} 个` : `${displayTags.length} tags`}
           </span>
-        </h1>
-        <p className={`text-sm mt-2 tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>按标签极速检索与筛选本站内容</p>
+        </h2>
+        <p className={`text-sm mt-2 tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+          {isZh ? "按标签检索与筛选本站内容" : "Filter content by tags"}
+        </p>
       </div>
 
-      {/* Floating Pill Buttons Tag Cloud */}
-      <div className={`p-8 rounded-2xl border backdrop-blur-md flex flex-wrap gap-4 items-center justify-center max-w-4xl mx-auto ${
-        isLight ? "bg-[#fefdfb] border-[#e5e2db] shadow-xs" : "bg-[#0c0d14]/40 border-white/[0.04]"
-      }`} id="tags-cloud-container">
-        {tagsList.map((tag, index) => (
-          <motion.button
-            key={tag.name}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: index * 0.03 }}
-            onClick={() => onSelectTag(tag.name)}
-            className={`group px-5 py-2.5 rounded-xl text-sm font-semibold tracking-wide flex items-center gap-2.5 transition-all duration-300 cursor-pointer ${
-              isLight
-                ? "bg-[#f8f7f4] border-[#e5e2db] hover:border-indigo-200 hover:bg-indigo-50/10 text-slate-600 hover:text-indigo-600"
-                : "bg-white/[0.02] border-white/[0.04] hover:border-white/[0.12] hover:bg-white/[0.04] text-slate-300 hover:text-white"
-            } ${tag.glow}`}
-            id={`tag-btn-${tag.name}`}
-          >
-            <span>{tag.name}</span>
-            {/* Post Count Pill Bubble */}
-            <span className={`text-xs font-mono px-1.5 py-0.5 rounded-full border transition-colors ${
-              isLight
-                ? "bg-[#e5e2db]/60 border-[#e5e2db]/40 text-slate-600 group-hover:bg-indigo-100 group-hover:text-indigo-600 group-hover:border-indigo-100"
-                : "bg-white/[0.05] border-white/[0.02] text-slate-500 group-hover:bg-indigo-500/20 group-hover:text-indigo-400 group-hover:border-indigo-500/30"
-            }`}>
-              {tag.count}
-            </span>
-          </motion.button>
-        ))}
+      {/* Organized Grid Layout */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3" id="tags-grid">
+        {displayTags.map((tag, index) => {
+          const color = tagColors[index % tagColors.length];
+          return (
+            <motion.button
+              key={tag.name}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.02 }}
+              onClick={() => onSelectTag(tag.name)}
+              className={`group px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between gap-2 transition-all duration-200 cursor-pointer ${
+                isLight
+                  ? `bg-white border border-[#e5e2db] text-slate-700 hover:text-slate-900 hover:bg-slate-50 ${color.lightHover}`
+                  : `bg-white/[0.02] border border-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.05] ${color.hover}`
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <span className={`w-1.5 h-1.5 rounded-full ${color.dot}`} />
+                <span>{tag.name}</span>
+              </div>
+              <span className={`text-xs font-mono px-1.5 py-0.5 rounded ${
+                isLight ? "bg-slate-100 text-slate-500" : "bg-white/[0.06] text-slate-500"
+              }`}>
+                {tag.count}
+              </span>
+            </motion.button>
+          );
+        })}
       </div>
     </div>
   );

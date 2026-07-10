@@ -276,11 +276,12 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     if (!file) return error('缺少文件');
-    if (file.size > 2 * 1024 * 1024) return error('文件大小不能超过 2MB');
+    if (file.size > 5 * 1024 * 1024) return error('文件大小不能超过 5MB');
     const ext = file.name.split('.').pop() || 'jpg';
     const key = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     await env.IMAGES.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
-    const imageUrl = `/api/images/${key}`;
+    const origin = new URL(request.url).origin;
+    const imageUrl = `${origin}/api/images/${key}`;
     return json({ url: imageUrl, key }, 201);
   }
 

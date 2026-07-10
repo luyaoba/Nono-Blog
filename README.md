@@ -254,6 +254,20 @@ Nono-Blog/
 UPDATE admin_users SET password_hash = '你的新密码' WHERE username = 'admin';
 ```
 
+## 数据存储
+
+所有数据存储在 Cloudflare 基础设施中，可通过 Dashboard 或 wrangler CLI 查看和管理：
+
+| 数据 | 存储位置 | 查看方式 |
+|------|---------|--------|
+| 文章、标签、分类、评论、点赞 | D1 数据库 (`blog_db`) | `npx wrangler d1 execute blog_db --remote --command="SELECT * FROM articles;"` |
+| 站点配置（昵称/头像/背景图等） | D1 `site_settings` 表 | `npx wrangler d1 execute blog_db --remote --command="SELECT * FROM site_settings;"` |
+| 上传的图片 | R2 存储桶 (`blog-images`) | Dashboard → R2 → `blog-images` |
+
+也可以在 [Cloudflare Dashboard](https://dash.cloudflare.com) 中可视化查看：
+- **D1**：Workers & Pages → D1 → `blog_db` → Console
+- **R2**：左侧菜单 → R2 → `blog-images`
+
 ## 常见问题
 
 ### Q: Workers 部署报权限错误？

@@ -193,7 +193,7 @@ export default function App() {
     // Fallback standard tabs
     switch (activeTab) {
       case "home":
-        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} settings={settings} language={language} />;
+        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} settings={settings} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
       case "articles":
         return (
           <Articles
@@ -213,7 +213,7 @@ export default function App() {
       case "contact":
         return <Contact glowMode={glowMode} theme={theme} language={language} />;
       default:
-        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} language={language} />;
+        return <Hero onNavigate={handleTabChange} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
     }
   };
 
@@ -297,7 +297,7 @@ export default function App() {
         {/* Dynamic Tags list embedded at bottom of Hero for visual balance & navigation (Matches section 8 tags) */}
         {activeTab === "home" && !isSearchActive && !selectedArticleId && (
           <div className={`border-t pt-12 pb-24 px-6 ${isLight ? "border-[#e5e2db]/60" : "border-white/[0.03]"}`}>
-            <Tags onSelectTag={handleSelectTag} language={language} />
+            <Tags onSelectTag={handleSelectTag} tags={tags} language={language} theme={theme} />
           </div>
         )}
       </main>
