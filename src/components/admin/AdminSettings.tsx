@@ -61,6 +61,12 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
   const [tagsTitleEn, setTagsTitleEn] = useState(settings.tagsTitleEn || "");
   const [tagsSubtitleEn, setTagsSubtitleEn] = useState(settings.tagsSubtitleEn || "");
 
+  // 首页领域卡片标题
+  const [heroTitle, setHeroTitle] = useState(settings.heroTitle || "");
+  const [heroSubtitle, setHeroSubtitle] = useState(settings.heroSubtitle || "");
+  const [heroTitleEn, setHeroTitleEn] = useState(settings.heroTitleEn || "");
+  const [heroSubtitleEn, setHeroSubtitleEn] = useState(settings.heroSubtitleEn || "");
+
   // Loading overlay
   const [loadingText, setLoadingText] = useState<string | null>(null);
 
@@ -87,6 +93,10 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
     setTagsSubtitle(settings.tagsSubtitle || "");
     setTagsTitleEn(settings.tagsTitleEn || "");
     setTagsSubtitleEn(settings.tagsSubtitleEn || "");
+    setHeroTitle(settings.heroTitle || "");
+    setHeroSubtitle(settings.heroSubtitle || "");
+    setHeroTitleEn(settings.heroTitleEn || "");
+    setHeroSubtitleEn(settings.heroSubtitleEn || "");
   }, [settings]);
 
   const [toast, setToast] = useState<string | null>(null);
@@ -105,6 +115,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
       location, siteNotice, siteSloganEn,
       categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
       tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
+      heroTitle, heroSubtitle, heroTitleEn, heroSubtitleEn,
     };
     // 更新本地状态
     onUpdateSettings(updated);
@@ -118,6 +129,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
           location, siteNotice, siteSloganEn,
           categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
           tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
+          heroTitle, heroSubtitle, heroTitleEn, heroSubtitleEn,
         });
         // 保存成功后重新从 API 拉取最新配置，确保前端同步
         try {
@@ -514,6 +526,41 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
             <input type="text" value={tagsSubtitleEn} onChange={e => setTagsSubtitleEn(e.target.value)}
               className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
               placeholder="Filter content by tags" />
+          </div>
+        </div>
+      </div>
+
+      {/* 首页领域卡片标题配置 */}
+      <div className={`p-6 rounded-2xl backdrop-blur-xl space-y-5 ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`}>
+        <h3 className={`text-sm font-bold text-indigo-400 flex items-center gap-2 pb-3 uppercase tracking-wider ${isLight ? "border-b border-[#e5e2db]" : "border-b border-white/[0.06]"}`}>
+          <Sparkles className="w-4.5 h-4.5" />
+          <span>{isZh ? "首页领域卡片标题" : "Hero Domain Card Titles"}</span>
+        </h3>
+        <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>{isZh ? "控制首页“领域”卡片的标题和副标题，独立于分类页配置。" : "Controls the Hero domain card titles, independent from Categories page."}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "领域标题" : "Hero Title"}</label>
+            <input type="text" value={heroTitle} onChange={e => setHeroTitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="领域" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "领域标题 (EN)" : "Hero Title (EN)"}</label>
+            <input type="text" value={heroTitleEn} onChange={e => setHeroTitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Domains" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "领域副标题" : "Hero Subtitle"}</label>
+            <input type="text" value={heroSubtitle} onChange={e => setHeroSubtitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="记录与开发相关的核心技能与技术领域" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "领域副标题 (EN)" : "Hero Subtitle (EN)"}</label>
+            <input type="text" value={heroSubtitleEn} onChange={e => setHeroSubtitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Documenting core skills and technical domains" />
           </div>
         </div>
       </div>

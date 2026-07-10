@@ -158,6 +158,25 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   // Global loading overlay
   const [loadingText, setLoadingText] = useState<string | null>(null);
 
+  // Markdown image upload helper (drag/paste)
+  const [dragOver, setDragOver] = useState(false);
+  const uploadAndInsertImage = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    setLoadingText(isZh ? "上传图片中..." : "Uploading image...");
+    try {
+      if (authToken) {
+        const res = await adminApi.uploadImage(authToken, file);
+        if (res.url) {
+          const imgMd = `![${file.name}](${res.url})`;
+          setEditMarkdown(prev => prev + '\n' + imgMd + '\n');
+        }
+      }
+    } catch {
+      console.error('图片上传失败');
+    }
+    setLoadingText(null);
+  };
+
   // Unpublish confirmation
   const [unpublishTarget, setUnpublishTarget] = useState<string | null>(null);
 
@@ -169,19 +188,17 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setLoadingText(isZh ? "删除中..." : "Deleting...");
-    try {
-      if (authToken) {
+    // 乐观更新：立即移除UI
+    const updated = articles.filter(a => a.id !== deleteTarget);
+    onUpdateArticles(updated);
+    setDeleteTarget(null);
+    // 后台同步API
+    if (authToken) {
+      try {
         await adminApi.deleteArticle(authToken, deleteTarget);
+      } catch {
+        console.error('文章删除失败');
       }
-      const updated = articles.filter(a => a.id !== deleteTarget);
-      onUpdateArticles(updated);
-    } catch {
-      const updated = articles.filter(a => a.id !== deleteTarget);
-      onUpdateArticles(updated);
-    } finally {
-      setDeleteTarget(null);
-      setLoadingText(null);
     }
   };
 
@@ -204,10 +221,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     }
   };
 
-  // Save
+  // Save — 乐观更新：先更新UI，后台同步API
   const handleSave = async () => {
     if (!activeArticle || !activeArticle.id) return;
-    setLoadingText(isZh ? "保存中..." : "Saving...");
 
     // Build the updated object
     const finalArticle: Article = {
@@ -227,10 +243,21 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
       coverImage: activeArticle.coverImage || "",
     };
 
-    // 持久化到数据库
+    // 立即更新UI（乐观更新）
+    const exists = articles.some(a => a.id === finalArticle.id);
+    let updated: Article[];
+    if (exists) {
+      updated = articles.map(a => a.id === finalArticle.id ? finalArticle : a);
+    } else {
+      updated = [finalArticle, ...articles];
+    }
+    onUpdateArticles(updated);
+    setIsEditing(false);
+    setActiveArticle(null);
+
+    // 后台同步API
     if (authToken) {
       try {
-        const exists = articles.some(a => a.id === finalArticle.id);
         if (exists) {
           await adminApi.updateArticle(authToken, finalArticle.id, finalArticle);
         } else {
@@ -240,20 +267,6 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         console.error('文章保存失败:', err);
       }
     }
-
-    const exists = articles.some(a => a.id === finalArticle.id);
-    let updated: Article[];
-
-    if (exists) {
-      updated = articles.map(a => a.id === finalArticle.id ? finalArticle : a);
-    } else {
-      updated = [finalArticle, ...articles];
-    }
-
-    onUpdateArticles(updated);
-    setIsEditing(false);
-    setActiveArticle(null);
-    setLoadingText(null);
   };
 
   return (
@@ -425,13 +438,12 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                                   if (art.status === "published") {
                                     setUnpublishTarget(art.id);
                                   } else {
-                                    try {
-                                      if (authToken) {
-                                        await adminApi.updateArticle(authToken, art.id, { status: 'published' });
-                                      }
-                                    } catch {}
+                                    // 乐观更新
                                     const updated = articles.map(a => a.id === art.id ? { ...a, status: "published" as const } : a);
                                     onUpdateArticles(updated);
+                                    if (authToken) {
+                                      try { await adminApi.updateArticle(authToken, art.id, { status: 'published' }); } catch {}
+                                    }
                                   }
                                 }}
                                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
@@ -742,10 +754,29 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                 <textarea
                   value={editMarkdown}
                   onChange={(e) => setEditMarkdown(e.target.value)}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (!items) return;
+                    for (const item of items) {
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (file) uploadAndInsertImage(file);
+                      }
+                    }
+                  }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    const files = e.dataTransfer?.files;
+                    if (files) Array.from(files).forEach(uploadAndInsertImage);
+                  }}
                   className={`w-full flex-grow p-4 bg-transparent outline-none font-mono text-sm resize-none overflow-y-auto leading-relaxed border-none ${
                     isLight ? "text-slate-700" : "text-slate-300"
-                  }`}
-                  placeholder="# 一级标题\n\n写下你的内容..."
+                  } ${dragOver ? "ring-2 ring-indigo-500/50 ring-inset" : ""}`}
+                  placeholder="# 一级标题\n\n写下你的内容... 可拖拽或粘贴图片"
                 />
               </div>
 
@@ -796,6 +827,16 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                             </pre>
                           );
                         }
+                        // 图片 ![alt](url)
+                        const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+                        if (imgMatch) {
+                          return (
+                            <div key={idx} className="my-3">
+                              <img src={imgMatch[2]} alt={imgMatch[1]} className="max-w-full rounded-lg border border-white/10 max-h-64 object-contain" />
+                              {imgMatch[1] && <p className="text-xs text-slate-500 mt-1 text-center">{imgMatch[1]}</p>}
+                            </div>
+                          );
+                        }
                         return <p key={idx} className="leading-6">{trimmed}</p>;
                       })}
                     </div>
@@ -829,14 +870,13 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         danger
         onConfirm={async () => {
           if (unpublishTarget) {
-            try {
-              if (authToken) {
-                await adminApi.updateArticle(authToken, unpublishTarget, { status: 'draft' });
-              }
-            } catch {}
+            // 乐观更新
             const updated = articles.map(a => a.id === unpublishTarget ? { ...a, status: "draft" as const } : a);
             onUpdateArticles(updated);
             setUnpublishTarget(null);
+            if (authToken) {
+              try { await adminApi.updateArticle(authToken, unpublishTarget, { status: 'draft' }); } catch {}
+            }
           }
         }}
         onCancel={() => setUnpublishTarget(null)}

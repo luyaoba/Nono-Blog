@@ -16,10 +16,10 @@ interface HeroProps {
     siteSloganEn?: string;
     siteNotice?: string;
     homeImage?: string;
-    categoriesTitle?: string;
-    categoriesSubtitle?: string;
-    categoriesTitleEn?: string;
-    categoriesSubtitleEn?: string;
+    heroTitle?: string;
+    heroSubtitle?: string;
+    heroTitleEn?: string;
+    heroSubtitleEn?: string;
   };
   categories?: Category[];
   articles?: Article[];
@@ -357,10 +357,10 @@ export default function Hero({ onNavigate, onSelectCategory, glowMode = true, th
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
             <div>
               <h2 className={`text-xl md:text-2xl font-bold tracking-wider ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-                {isZh ? (settings?.categoriesTitle || "领域") : (settings?.categoriesTitleEn || "Domains")}
+                {isZh ? (settings?.heroTitle || "领域") : (settings?.heroTitleEn || "Domains")}
               </h2>
               <p className={`text-sm mt-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {isZh ? (settings?.categoriesSubtitle || "记录与开发相关的核心技能与技术领域") : (settings?.categoriesSubtitleEn || "Documenting core skills and technical domains")}
+                {isZh ? (settings?.heroSubtitle || "记录与开发相关的核心技能与技术领域") : (settings?.heroSubtitleEn || "Documenting core skills and technical domains")}
               </p>
             </div>
             <div className={`h-[1px] flex-grow mx-0 md:mx-6 hidden md:block ${isLight ? "bg-[#e5e2db]" : "bg-white/[0.04]"}`} />

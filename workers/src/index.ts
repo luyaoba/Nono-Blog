@@ -214,6 +214,17 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   const auth = await verifyAuth(request, env.JWT_SECRET);
   if (!auth) return error('未授权', 401);
 
+  // 管理员获取所有文章（含所有状态）
+  if (path === '/api/admin/articles' && method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT * FROM articles ORDER BY date DESC').all();
+    const articles = results || [];
+    for (const article of articles as any[]) {
+      const tags = await env.DB.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').bind(article.id).all();
+      article.tags = (tags.results || []).map((t: any) => t.name);
+    }
+    return json(articles);
+  }
+
   // 获取所有评论（含待审核）
   if (path === '/api/admin/comments' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT * FROM comments ORDER BY date DESC').all();

@@ -7,7 +7,7 @@ import AdminDashboard from "./components/admin/AdminDashboard";
 import AdminPosts from "./components/admin/AdminPosts";
 import AdminTags from "./components/admin/AdminTags";
 import AdminSettings from "./components/admin/AdminSettings";
-import { api } from "./api";
+import { api, adminApi } from "./api";
 import { mapArticles, mapCategories, mapSettings } from "./api";
 
 import { 
@@ -57,10 +57,11 @@ export default function AdminApp() {
   const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // 刷新文章数据（确保浏览量等实时同步）
+  // 刷新文章数据（管理员API，返回所有状态）
   const refreshArticles = async () => {
+    if (!authToken) return;
     try {
-      const articlesRes = await api.getArticles();
+      const articlesRes = await adminApi.getArticles(authToken);
       if (articlesRes.length) setArticles(mapArticles(articlesRes));
     } catch {}
   };
@@ -70,8 +71,12 @@ export default function AdminApp() {
     let cancelled = false;
     async function loadData() {
       try {
+        // 管理员已登录时使用 admin API 加载全部文章（含 draft）
+        const articlesPromise = authToken
+          ? adminApi.getArticles(authToken)
+          : api.getArticles();
         const [articlesRes, tagsRes, categoriesRes, settingsRes] = await Promise.all([
-          api.getArticles(),
+          articlesPromise,
           api.getTags(),
           api.getCategories(),
           api.getSettings(),

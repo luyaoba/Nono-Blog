@@ -80,6 +80,10 @@ export interface SiteSettings {
   tagsSubtitle?: string;
   tagsTitleEn?: string;
   tagsSubtitleEn?: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  heroTitleEn?: string;
+  heroSubtitleEn?: string;
 }
 
 // Initial pre-populated data for standard synchronization
@@ -342,6 +346,10 @@ export const INITIAL_SETTINGS: SiteSettings = {
   tagsSubtitle: "按标签检索与筛选本站内容",
   tagsTitleEn: "Tags",
   tagsSubtitleEn: "Filter content by tags",
+  heroTitle: "领域",
+  heroSubtitle: "记录与开发相关的核心技能与技术领域",
+  heroTitleEn: "Domains",
+  heroSubtitleEn: "Documenting core skills and technical domains",
 };
 
 export const INITIAL_CATEGORIES: Category[] = [

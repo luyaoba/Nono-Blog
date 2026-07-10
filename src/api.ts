@@ -86,6 +86,8 @@ export const adminApi = {
     }),
 
   // 文章管理
+  getArticles: (token: string) =>
+    request<any[]>('/api/admin/articles', { headers: authHeaders(token) }),
   createArticle: (token: string, data: any) =>
     request<any>('/api/admin/articles', {
       method: 'POST',
@@ -166,5 +168,9 @@ export function mapSettings(obj: Record<string, string>): SiteSettings {
     tagsSubtitle: obj.tagsSubtitle || '',
     tagsTitleEn: obj.tagsTitleEn || '',
     tagsSubtitleEn: obj.tagsSubtitleEn || '',
+    heroTitle: obj.heroTitle || '',
+    heroSubtitle: obj.heroSubtitle || '',
+    heroTitleEn: obj.heroTitleEn || '',
+    heroSubtitleEn: obj.heroSubtitleEn || '',
   };
 }
