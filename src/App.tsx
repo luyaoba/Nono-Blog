@@ -218,7 +218,7 @@ export default function App() {
           />
         );
       case "categories":
-        return <Categories onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
+        return <Categories onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} settings={settings} />;
       case "about":
         return <About glowMode={glowMode} theme={theme} language={language} settings={settings} />;
       default:
@@ -309,7 +309,7 @@ export default function App() {
         {/* Dynamic Tags list embedded at bottom of Hero for visual balance & navigation (Matches section 8 tags) */}
         {activeTab === "home" && !isSearchActive && !selectedArticleId && (
           <div className={`border-t pt-12 pb-24 px-6 ${isLight ? "border-[#e5e2db]/60" : "border-white/[0.03]"}`}>
-            <Tags onSelectTag={handleSelectTag} tags={tags} language={language} theme={theme} />
+            <Tags onSelectTag={handleSelectTag} tags={tags} language={language} theme={theme} settings={settings} />
           </div>
         )}
       </main>

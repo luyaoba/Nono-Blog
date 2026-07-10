@@ -19,6 +19,7 @@ import {
 import { SiteSettings } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
 import { adminApi, api, mapSettings } from "../../api";
+import LoadingOverlay from "./LoadingOverlay";
 
 interface AdminSettingsProps {
   settings: SiteSettings;
@@ -50,6 +51,19 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
   const [siteNotice, setSiteNotice] = useState(settings.siteNotice || "");
   const [siteSloganEn, setSiteSloganEn] = useState(settings.siteSloganEn || "");
 
+  // 页面标题配置
+  const [categoriesTitle, setCategoriesTitle] = useState(settings.categoriesTitle || "");
+  const [categoriesSubtitle, setCategoriesSubtitle] = useState(settings.categoriesSubtitle || "");
+  const [categoriesTitleEn, setCategoriesTitleEn] = useState(settings.categoriesTitleEn || "");
+  const [categoriesSubtitleEn, setCategoriesSubtitleEn] = useState(settings.categoriesSubtitleEn || "");
+  const [tagsTitle, setTagsTitle] = useState(settings.tagsTitle || "");
+  const [tagsSubtitle, setTagsSubtitle] = useState(settings.tagsSubtitle || "");
+  const [tagsTitleEn, setTagsTitleEn] = useState(settings.tagsTitleEn || "");
+  const [tagsSubtitleEn, setTagsSubtitleEn] = useState(settings.tagsSubtitleEn || "");
+
+  // Loading overlay
+  const [loadingText, setLoadingText] = useState<string | null>(null);
+
   // 当 settings prop 更新时同步表单状态（保存后 API 重新拉取会触发）
   useEffect(() => {
     setNickname(settings.nickname);
@@ -65,6 +79,14 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
     setLocation(settings.location || "");
     setSiteNotice(settings.siteNotice || "");
     setSiteSloganEn(settings.siteSloganEn || "");
+    setCategoriesTitle(settings.categoriesTitle || "");
+    setCategoriesSubtitle(settings.categoriesSubtitle || "");
+    setCategoriesTitleEn(settings.categoriesTitleEn || "");
+    setCategoriesSubtitleEn(settings.categoriesSubtitleEn || "");
+    setTagsTitle(settings.tagsTitle || "");
+    setTagsSubtitle(settings.tagsSubtitle || "");
+    setTagsTitleEn(settings.tagsTitleEn || "");
+    setTagsSubtitleEn(settings.tagsSubtitleEn || "");
   }, [settings]);
 
   const [toast, setToast] = useState<string | null>(null);
@@ -75,20 +97,14 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
   };
 
   const handleSave = async () => {
+    setLoadingText(isZh ? "保存中..." : "Saving...");
     const updated: SiteSettings = {
-      nickname,
-      title,
-      avatarUrl,
-      bio,
-      siteTitle,
-      siteSlogan,
-      siteDescription,
-      github,
-      mail,
-      homeImage,
-      location,
-      siteNotice,
-      siteSloganEn,
+      nickname, title, avatarUrl, bio,
+      siteTitle, siteSlogan, siteDescription,
+      github, mail, homeImage,
+      location, siteNotice, siteSloganEn,
+      categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
+      tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
     };
     // 更新本地状态
     onUpdateSettings(updated);
@@ -100,6 +116,8 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
           siteTitle, siteSlogan, siteDescription,
           github, mail, homeImage,
           location, siteNotice, siteSloganEn,
+          categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
+          tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
         });
         // 保存成功后重新从 API 拉取最新配置，确保前端同步
         try {
@@ -120,10 +138,12 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
     } else {
       showToast(isZh ? "已保存（仅本地）" : "Saved (local only)");
     }
+    setLoadingText(null);
   };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300" id="admin-settings-container">
+      <LoadingOverlay visible={!!loadingText} text={loadingText || undefined} />
       {/* Intro */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -199,6 +219,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                         const file = e.target.files?.[0];
                         if (!file) return;
                         if (authToken) {
+                          setLoadingText(isZh ? "上传头像中..." : "Uploading avatar...");
                           try {
                             const res = await adminApi.uploadImage(authToken, file);
                             if (res.url) setAvatarUrl(res.url);
@@ -207,6 +228,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                             reader.onloadend = () => setAvatarUrl(reader.result as string);
                             reader.readAsDataURL(file);
                           }
+                          setLoadingText(null);
                         } else {
                           const reader = new FileReader();
                           reader.onloadend = () => setAvatarUrl(reader.result as string);
@@ -384,6 +406,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                         const file = e.target.files?.[0];
                         if (!file) return;
                         if (authToken) {
+                          setLoadingText(isZh ? "上传背景图中..." : "Uploading image...");
                           try {
                             const res = await adminApi.uploadImage(authToken, file);
                             if (res.url) setHomeImage(res.url);
@@ -392,6 +415,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                             reader.onloadend = () => setHomeImage(reader.result as string);
                             reader.readAsDataURL(file);
                           }
+                          setLoadingText(null);
                         } else {
                           const reader = new FileReader();
                           reader.onloadend = () => setHomeImage(reader.result as string);
@@ -433,6 +457,65 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
           </div>
         </div>
 
+      </div>
+
+      {/* 页面标题配置 */}
+      <div className={`p-6 rounded-2xl backdrop-blur-xl space-y-5 ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`}>
+        <h3 className={`text-sm font-bold text-indigo-400 flex items-center gap-2 pb-3 uppercase tracking-wider ${isLight ? "border-b border-[#e5e2db]" : "border-b border-white/[0.06]"}`}>
+          <SettingsIcon className="w-4.5 h-4.5" />
+          <span>{isZh ? "页面标题与描述配置" : "Page Titles & Descriptions"}</span>
+        </h3>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "分类页标题" : "Categories Title"}</label>
+            <input type="text" value={categoriesTitle} onChange={e => setCategoriesTitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="分类" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "分类页标题 (EN)" : "Categories Title (EN)"}</label>
+            <input type="text" value={categoriesTitleEn} onChange={e => setCategoriesTitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Categories" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "分类页副标题" : "Categories Subtitle"}</label>
+            <input type="text" value={categoriesSubtitle} onChange={e => setCategoriesSubtitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="分类探寻我感兴趣的研究与工程实践领域" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "分类页副标题 (EN)" : "Categories Subtitle (EN)"}</label>
+            <input type="text" value={categoriesSubtitleEn} onChange={e => setCategoriesSubtitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Explore my areas of research and engineering practice" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "标签页标题" : "Tags Title"}</label>
+            <input type="text" value={tagsTitle} onChange={e => setTagsTitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="标签" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "标签页标题 (EN)" : "Tags Title (EN)"}</label>
+            <input type="text" value={tagsTitleEn} onChange={e => setTagsTitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Tags" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "标签页副标题" : "Tags Subtitle"}</label>
+            <input type="text" value={tagsSubtitle} onChange={e => setTagsSubtitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="按标签检索与筛选本站内容" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "标签页副标题 (EN)" : "Tags Subtitle (EN)"}</label>
+            <input type="text" value={tagsSubtitleEn} onChange={e => setTagsSubtitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Filter content by tags" />
+          </div>
+        </div>
       </div>
 
       {/* Toast Notification */}

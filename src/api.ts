@@ -158,5 +158,13 @@ export function mapSettings(obj: Record<string, string>): SiteSettings {
     mail: obj.mail || '', homeImage: obj.homeImage || '',
     location: obj.location || '', siteSloganEn: obj.siteSloganEn || '',
     siteNotice: obj.siteNotice || '',
+    categoriesTitle: obj.categoriesTitle || '',
+    categoriesSubtitle: obj.categoriesSubtitle || '',
+    categoriesTitleEn: obj.categoriesTitleEn || '',
+    categoriesSubtitleEn: obj.categoriesSubtitleEn || '',
+    tagsTitle: obj.tagsTitle || '',
+    tagsSubtitle: obj.tagsSubtitle || '',
+    tagsTitleEn: obj.tagsTitleEn || '',
+    tagsSubtitleEn: obj.tagsSubtitleEn || '',
   };
 }

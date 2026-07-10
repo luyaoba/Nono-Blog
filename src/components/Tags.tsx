@@ -8,6 +8,7 @@ interface TagsProps {
   tags?: Tag[];
   theme?: "glow" | "dark" | "light";
   language?: "zh" | "en";
+  settings?: { tagsTitle?: string; tagsSubtitle?: string; tagsTitleEn?: string; tagsSubtitleEn?: string };
 }
 
 const tagColors = [
@@ -23,7 +24,7 @@ const tagColors = [
   { hover: "hover:border-teal-500/30", lightHover: "hover:border-teal-300", dot: "bg-teal-400" },
 ];
 
-export default function Tags({ onSelectTag, tags = [], theme = "glow", language = "zh" }: TagsProps) {
+export default function Tags({ onSelectTag, tags = [], theme = "glow", language = "zh", settings }: TagsProps) {
   const isLight = theme === "light";
   const isZh = language === "zh";
 
@@ -44,7 +45,7 @@ export default function Tags({ onSelectTag, tags = [], theme = "glow", language 
       {/* Header */}
       <div className="mb-8">
         <h2 className={`text-2xl font-bold tracking-wider flex items-center gap-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-          {isZh ? "标签" : "Tags"}
+          {isZh ? (settings?.tagsTitle || "标签") : (settings?.tagsTitleEn || "Tags")}
           <span className={`text-xs font-mono font-normal px-2.5 py-0.5 rounded border ${
             isLight ? "border-indigo-100 bg-indigo-50/50 text-indigo-600" : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400"
           }`}>
@@ -52,7 +53,7 @@ export default function Tags({ onSelectTag, tags = [], theme = "glow", language 
           </span>
         </h2>
         <p className={`text-sm mt-2 tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-          {isZh ? "按标签检索与筛选本站内容" : "Filter content by tags"}
+          {isZh ? (settings?.tagsSubtitle || "按标签检索与筛选本站内容") : (settings?.tagsSubtitleEn || "Filter content by tags")}
         </p>
       </div>
 

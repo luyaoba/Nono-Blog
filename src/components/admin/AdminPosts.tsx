@@ -24,6 +24,7 @@ import { Article, Category } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
 import { adminApi } from "../../api";
 import ConfirmDialog from "./ConfirmDialog";
+import LoadingOverlay from "./LoadingOverlay";
 
 // Custom polished dropdown selector to replace ugly native <select> elements
 function CustomSelect({ 
@@ -154,6 +155,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     setIsEditing(true);
   };
 
+  // Global loading overlay
+  const [loadingText, setLoadingText] = useState<string | null>(null);
+
   // Unpublish confirmation
   const [unpublishTarget, setUnpublishTarget] = useState<string | null>(null);
 
@@ -165,7 +169,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setDeleteLoading(true);
+    setLoadingText(isZh ? "删除中..." : "Deleting...");
     try {
       if (authToken) {
         await adminApi.deleteArticle(authToken, deleteTarget);
@@ -173,12 +177,11 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
       const updated = articles.filter(a => a.id !== deleteTarget);
       onUpdateArticles(updated);
     } catch {
-      // 删除失败时仍然更新本地状态
       const updated = articles.filter(a => a.id !== deleteTarget);
       onUpdateArticles(updated);
     } finally {
       setDeleteTarget(null);
-      setDeleteLoading(false);
+      setLoadingText(null);
     }
   };
 
@@ -204,6 +207,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   // Save
   const handleSave = async () => {
     if (!activeArticle || !activeArticle.id) return;
+    setLoadingText(isZh ? "保存中..." : "Saving...");
 
     // Build the updated object
     const finalArticle: Article = {
@@ -249,10 +253,12 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     onUpdateArticles(updated);
     setIsEditing(false);
     setActiveArticle(null);
+    setLoadingText(null);
   };
 
   return (
     <div className="space-y-6" id="admin-posts-container">
+      <LoadingOverlay visible={!!loadingText} text={loadingText || undefined} />
       <AnimatePresence mode="wait">
         {!isEditing ? (
           <motion.div
@@ -640,13 +646,16 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                         const file = e.target.files?.[0];
                         if (!file) return;
                         if (authToken) {
+                          setLoadingText(isZh ? "上传图片中..." : "Uploading...");
                           try {
                             const res = await adminApi.uploadImage(authToken, file);
                             if (res.url) {
                               setActiveArticle({ ...activeArticle, coverImage: res.url });
+                              setLoadingText(null);
                               return;
                             }
                           } catch {}
+                          setLoadingText(null);
                         }
                         // 回退：本地预览
                         const reader = new FileReader();

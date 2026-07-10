@@ -68,10 +68,18 @@ export interface SiteSettings {
   github: string;
   twitter: string;
   mail: string;
-  homeImage?: string; // Configurable homepage image URL
-  location?: string; // Location display on About page
-  siteSloganEn?: string; // English slogan
-  siteNotice?: string; // Site notice/badge text
+  homeImage?: string;
+  location?: string;
+  siteSloganEn?: string;
+  siteNotice?: string;
+  categoriesTitle?: string;
+  categoriesSubtitle?: string;
+  categoriesTitleEn?: string;
+  categoriesSubtitleEn?: string;
+  tagsTitle?: string;
+  tagsSubtitle?: string;
+  tagsTitleEn?: string;
+  tagsSubtitleEn?: string;
 }
 
 // Initial pre-populated data for standard synchronization
@@ -325,7 +333,15 @@ export const INITIAL_SETTINGS: SiteSettings = {
   github: "https://github.com/nono",
   twitter: "https://twitter.com/nono_dev",
   mail: "nono@example.com",
-  homeImage: "" // Default empty, falls back to the beautiful dynamic SVG scene
+  homeImage: "",
+  categoriesTitle: "分类",
+  categoriesSubtitle: "分类探寻我感兴趣的研究与工程实践领域",
+  categoriesTitleEn: "Categories",
+  categoriesSubtitleEn: "Explore my areas of research and engineering practice",
+  tagsTitle: "标签",
+  tagsSubtitle: "按标签检索与筛选本站内容",
+  tagsTitleEn: "Tags",
+  tagsSubtitleEn: "Filter content by tags",
 };
 
 export const INITIAL_CATEGORIES: Category[] = [

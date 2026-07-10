@@ -13,6 +13,7 @@ interface CategoriesProps {
   categories?: Category[];
   articles?: Article[];
   language?: "zh" | "en";
+  settings?: { categoriesTitle?: string; categoriesSubtitle?: string; categoriesTitleEn?: string; categoriesSubtitleEn?: string };
 }
 
 export default function Categories({ 
@@ -21,7 +22,8 @@ export default function Categories({
   theme = "glow",
   categories = [],
   articles = [],
-  language = "zh"
+  language = "zh",
+  settings,
 }: CategoriesProps) {
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
@@ -144,14 +146,14 @@ export default function Categories({
       {/* Header Info */}
       <div className="mb-12">
         <h1 className={`text-3xl font-extrabold tracking-wider flex items-center gap-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-          {isZh ? "分类" : "Categories"}
+          {isZh ? (settings?.categoriesTitle || "分类") : (settings?.categoriesTitleEn || "Categories")}
           <span className={`text-sm font-mono font-normal px-3 py-1 rounded border ${
             isLight ? "border-indigo-100 bg-indigo-50/50 text-indigo-600" : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400"
           }`}>
             {isZh ? `共 ${displayList.length} 个分类` : `${displayList.length} Categories`}
           </span>
         </h1>
-        <p className={`text-base mt-3 tracking-wide ${isLight ? "text-slate-600" : "text-slate-300"}`}>{isZh ? "分类探寻我感兴趣的研究与工程实践领域" : "Explore my areas of research and engineering practice"}</p>
+        <p className={`text-base mt-3 tracking-wide ${isLight ? "text-slate-600" : "text-slate-300"}`}>{isZh ? (settings?.categoriesSubtitle || "分类探寻我感兴趣的研究与工程实践领域") : (settings?.categoriesSubtitleEn || "Explore my areas of research and engineering practice")}</p>
       </div>
 
       {/* Grid Bento Layout */}
