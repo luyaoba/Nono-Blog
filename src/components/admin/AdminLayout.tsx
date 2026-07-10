@@ -26,6 +26,7 @@ interface AdminLayoutProps {
   onExitConsole: () => void;
   loading?: boolean;
   language?: "zh" | "en";
+  onLanguageChange?: (lang: "zh" | "en") => void;
   theme?: "dark" | "light";
   settings?: {
     nickname?: string;
@@ -41,6 +42,7 @@ export default function AdminLayout({
   onExitConsole,
   loading = false,
   language = "zh",
+  onLanguageChange,
   theme = "dark",
   settings,
 }: AdminLayoutProps) {
@@ -92,7 +94,7 @@ export default function AdminLayout({
                   onClick={onExitConsole}
                 >
                   <span className={`text-lg font-extrabold whitespace-nowrap ${isLight ? "text-slate-800" : "text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-200 to-indigo-300"}`}>
-                    {settings?.nickname || "Nono"} Console
+                    {settings?.nickname || "Nono"} {isZh ? "博客管理" : "Blog Admin"}
                   </span>
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_8px_#818cf8] shrink-0" />
                 </motion.div>
@@ -219,6 +221,15 @@ export default function AdminLayout({
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Language Toggle */}
+            {onLanguageChange && (
+              <button
+                onClick={() => onLanguageChange(language === 'zh' ? 'en' : 'zh')}
+                className={`text-sm font-mono font-semibold px-3 py-1.5 rounded-md border transition-all cursor-pointer ${isLight ? "text-slate-600 bg-[#f0efeb] border-[#e5e2db] hover:bg-[#e8e6e1]" : "text-slate-300 bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06]"}`}
+              >
+                {language === 'zh' ? 'EN' : '中文'}
+              </button>
+            )}
             <span className={`text-sm font-medium px-3 py-1.5 rounded-md ${isLight ? "text-slate-600 bg-[#f0efeb] border border-[#e5e2db]" : "text-slate-300 bg-white/[0.03] border border-white/[0.08]"}`}>
               {isZh ? "系统权限：站长专享" : "Access: Owner Only"}
             </span>

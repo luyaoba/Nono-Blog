@@ -202,7 +202,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   };
 
   // Save
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!activeArticle || !activeArticle.id) return;
 
     // Build the updated object
@@ -222,6 +222,20 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
       status: activeArticle.status || "draft",
       coverImage: activeArticle.coverImage || "",
     };
+
+    // 持久化到数据库
+    if (authToken) {
+      try {
+        const exists = articles.some(a => a.id === finalArticle.id);
+        if (exists) {
+          await adminApi.updateArticle(authToken, finalArticle.id, finalArticle);
+        } else {
+          await adminApi.createArticle(authToken, finalArticle);
+        }
+      } catch (err) {
+        console.error('文章保存失败:', err);
+      }
+    }
 
     const exists = articles.some(a => a.id === finalArticle.id);
     let updated: Article[];
@@ -313,16 +327,18 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           {/* Title */}
                           <td className="py-4 px-6">
                             <div className="max-w-xs md:max-w-md flex items-center gap-3">
-                              {art.coverImage && (
-                                <img 
-                                  src={art.coverImage} 
-                                  alt="" 
-                                  className="w-8 h-8 rounded-lg object-cover bg-slate-900 border border-white/10 shrink-0"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                  }}
-                                />
-                              )}
+                              {art.coverImage ? (
+                                <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-900/50 border border-white/10 shrink-0">
+                                  <img 
+                                    src={art.coverImage} 
+                                    alt="" 
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
                               <div className="truncate">
                                 <div className={`font-bold tracking-wide hover:text-indigo-400 transition-colors truncate ${isLight ? "text-slate-800" : "text-slate-100"}`}>
                                   {art.title}
@@ -620,18 +636,27 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                       accept="image/*"
                       id="cover-file-upload"
                       className="hidden"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setActiveArticle({
-                              ...activeArticle,
-                              coverImage: reader.result as string
-                            });
-                          };
-                          reader.readAsDataURL(file);
+                        if (!file) return;
+                        if (authToken) {
+                          try {
+                            const res = await adminApi.uploadImage(authToken, file);
+                            if (res.url) {
+                              setActiveArticle({ ...activeArticle, coverImage: res.url });
+                              return;
+                            }
+                          } catch {}
                         }
+                        // 回退：本地预览
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          setActiveArticle({
+                            ...activeArticle,
+                            coverImage: reader.result as string
+                          });
+                        };
+                        reader.readAsDataURL(file);
                       }}
                     />
                     <label

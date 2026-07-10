@@ -201,6 +201,7 @@ export default function AdminApp() {
             window.location.href = "/";
           }}
           language={language}
+          onLanguageChange={setLanguage}
           theme={theme}
         >
           {renderAdminChild()}
