@@ -12,6 +12,9 @@ interface AboutProps {
     bio?: string;
     notice?: string;
     slogan?: string;
+    nickname?: string;
+    title?: string;
+    avatarUrl?: string;
   };
 }
 
@@ -102,42 +105,46 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
             }`}
             id="about-profile-card"
           >
-            {/* Custom SVG Avatar representation of "Nono" */}
+            {/* Avatar - use uploaded image if available, otherwise SVG */}
             <div className={`w-24 h-24 rounded-full border-2 relative overflow-hidden flex items-center justify-center mb-6 group ${
               isLight
                 ? "border-indigo-100 bg-indigo-50/30 shadow-[0_8px_20px_rgba(99,102,241,0.1)]"
                 : "border-indigo-500/20 bg-[#080914] shadow-[0_0_20px_rgba(99,102,241,0.15)]"
             }`}>
-              <svg viewBox="0 0 100 100" className="w-full h-full">
-                {/* Background stars (Dark mode only) */}
-                {!isLight && (
-                  <>
-                    <circle cx="20" cy="30" r="1" fill="#fff" opacity="0.3" />
-                    <circle cx="80" cy="25" r="1.5" fill="#fff" opacity="0.2" />
-                  </>
-                )}
-                {/* Minimalist mountain horizon behind avatar head */}
-                <path d="M 10 90 L 50 60 L 90 90 Z" fill={isLight ? "#e0e7ff" : "#1b1c2b"} />
-                {/* Human developer figure torso */}
-                <path d="M 25 100 Q 25 80 50 80 Q 75 80 75 100 Z" fill={isLight ? "#4f46e5" : "#0c0e1e"} />
-                {/* Face/neck */}
-                <rect x="45" y="55" width="10" height="15" fill={isLight ? "#fed7aa" : "#e2e8f0"} rx="2" />
-                {/* Hair (Cool modern black haircut) */}
-                <path d="M 36 50 Q 50 35 64 50 L 62 55 Q 50 48 38 55 Z" fill="#040508" />
-                <circle cx="50" cy="51" r="11" fill="#04060a" />
-                <path d="M 38 48 Q 50 42 62 48" stroke={isLight ? "#4338ca" : "#1e1b4b"} strokeWidth="1" />
-                {/* Eyes/glasses (Modern minimalist look) */}
-                <rect x="42" y="49" width="6" height="3" fill="#fff" rx="0.5" opacity="0.8" />
-                <rect x="52" y="49" width="6" height="3" fill="#fff" rx="0.5" opacity="0.8" />
-                <line x1="48" y1="50" x2="52" y2="50" stroke="#fff" strokeWidth="0.5" opacity="0.8" />
-              </svg>
+              {settings?.avatarUrl ? (
+                <img src={settings.avatarUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                <svg viewBox="0 0 100 100" className="w-full h-full">
+                  {/* Background stars (Dark mode only) */}
+                  {!isLight && (
+                    <>
+                      <circle cx="20" cy="30" r="1" fill="#fff" opacity="0.3" />
+                      <circle cx="80" cy="25" r="1.5" fill="#fff" opacity="0.2" />
+                    </>
+                  )}
+                  {/* Minimalist mountain horizon behind avatar head */}
+                  <path d="M 10 90 L 50 60 L 90 90 Z" fill={isLight ? "#e0e7ff" : "#1b1c2b"} />
+                  {/* Human developer figure torso */}
+                  <path d="M 25 100 Q 25 80 50 80 Q 75 80 75 100 Z" fill={isLight ? "#4f46e5" : "#0c0e1e"} />
+                  {/* Face/neck */}
+                  <rect x="45" y="55" width="10" height="15" fill={isLight ? "#fed7aa" : "#e2e8f0"} rx="2" />
+                  {/* Hair (Cool modern black haircut) */}
+                  <path d="M 36 50 Q 50 35 64 50 L 62 55 Q 50 48 38 55 Z" fill="#040508" />
+                  <circle cx="50" cy="51" r="11" fill="#04060a" />
+                  <path d="M 38 48 Q 50 42 62 48" stroke={isLight ? "#4338ca" : "#1e1b4b"} strokeWidth="1" />
+                  {/* Eyes/glasses (Modern minimalist look) */}
+                  <rect x="42" y="49" width="6" height="3" fill="#fff" rx="0.5" opacity="0.8" />
+                  <rect x="52" y="49" width="6" height="3" fill="#fff" rx="0.5" opacity="0.8" />
+                  <line x1="48" y1="50" x2="52" y2="50" stroke="#fff" strokeWidth="0.5" opacity="0.8" />
+                </svg>
+              )}
               {/* Outer hover rings */}
               <div className="absolute inset-0 border border-white/5 rounded-full scale-100 group-hover:scale-105 transition-transform" />
             </div>
 
             {/* Title & Metadata */}
-            <h2 className={`text-xl font-bold mb-1 ${isLight ? "text-slate-800" : "text-slate-100"}`} id="about-username">Nono</h2>
-            <p className={`text-sm font-medium mb-2 tracking-wide ${isLight ? "text-indigo-600" : "text-indigo-400"}`}>{isZh ? "全栈开发工程师 & 独立创作者" : "Full-Stack Developer & Indie Creator"}</p>
+            <h2 className={`text-xl font-bold mb-1 ${isLight ? "text-slate-800" : "text-slate-100"}`} id="about-username">{settings?.nickname || "Nono"}</h2>
+            <p className={`text-sm font-medium mb-2 tracking-wide ${isLight ? "text-indigo-600" : "text-indigo-400"}`}>{settings?.title || (isZh ? "全栈开发工程师 & 独立创作者" : "Full-Stack Developer & Indie Creator")}</p>
             <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono mb-6" id="about-location">
               <MapPin className="w-3.5 h-3.5 text-slate-400" /> {isZh ? "坐标地球 📍" : "Based in Earth 📍"}
             </div>

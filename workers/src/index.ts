@@ -152,9 +152,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json(projects);
   }
 
-  // 获取标签列表
+  // 获取标签列表（动态计算文章数量）
   if (path === '/api/tags' && method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM tags ORDER BY count DESC').all();
+    const { results } = await env.DB.prepare(
+      `SELECT t.id, t.name, t.slug, t.color,
+        (SELECT COUNT(*) FROM article_tags at2 JOIN articles a2 ON at2.article_id = a2.id WHERE at2.tag_id = t.id AND a2.status = 'published') as count
+       FROM tags t ORDER BY count DESC`
+    ).all();
     return json(results || []);
   }
 

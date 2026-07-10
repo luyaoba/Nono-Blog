@@ -94,7 +94,7 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
         ) : null}
 
         {/* Dense Star constellations layer behind Title for dark modes */}
-        {!isLight && (
+        {!isLight && !settings?.homeImage && (
           <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[550px] opacity-60" viewBox="0 0 1200 550" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g stroke={actualGlow ? "rgba(99,102,241,0.08)" : "rgba(255,255,255,0.04)"} strokeWidth="0.75">
               <line x1="250" y1="120" x2="310" y2="80" />
@@ -124,6 +124,19 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
           </svg>
         )}
       </div>
+
+      {/* Full-bleed background image (covers entire hero when set) */}
+      {settings?.homeImage && (
+        <div className="absolute inset-0 z-0">
+          <img 
+            src={settings.homeImage} 
+            alt="" 
+            className="w-full h-full object-cover" 
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+        </div>
+      )}
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto px-6 pt-32 pb-24 relative flex flex-col items-center text-center z-10">
@@ -193,36 +206,15 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
           </button>
         </motion.div>
 
-        {/* Inline High-Fidelity SVG Mountain starry night scene with observer */}
+        {/* Inline High-Fidelity SVG Mountain starry night scene (fallback when no homeImage) */}
+        {!settings?.homeImage && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.6, ease: "easeOut" }}
-          className={`w-full max-w-4xl h-[280px] md:h-[380px] mt-12 relative overflow-hidden transition-all duration-1000 ${
-            isLight
-              ? "bg-transparent"
-              : actualGlow 
-              ? "bg-transparent" 
-              : "bg-transparent"
-          }`}
+          className={`w-full max-w-4xl h-[280px] md:h-[380px] mt-12 relative overflow-hidden transition-all duration-1000`}
           id="hero-illustration"
         >
-          {settings?.homeImage ? (
-            <motion.div 
-              className="w-full h-full relative group"
-              initial={{ opacity: 0, scale: 1.03 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-            >
-              <img 
-                src={settings.homeImage} 
-                alt="主页个性化背景图" 
-                className="w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-105" 
-                referrerPolicy="no-referrer"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
-            </motion.div>
-          ) : (
             <svg className="w-full h-full object-cover" viewBox="0 0 800 350" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Background Sky Deep Gradient */}
               <rect width="800" height="350" fill="url(#skyGradient)" />
@@ -330,15 +322,13 @@ export default function Hero({ onNavigate, glowMode = true, theme = "glow", sett
                 </linearGradient>
               </defs>
             </svg>
-          )}
 
-          {/* Floating Info Overlay - only show for default SVG */}
-          {!settings?.homeImage && (
+            {/* Floating Info Overlay - only show for default SVG */}
             <div className="absolute bottom-4 left-6 flex items-center gap-6 text-xs font-mono text-slate-400 tracking-widest uppercase hidden sm:flex select-none">
               <div>{isZh ? "极简太空博客" : "MINIMAL SPACE BLOG"}</div>
             </div>
-          )}
         </motion.div>
+        )}
 
         {/* Feature Grid Section - 领域专长卡片 */}
         <div className="w-full mt-20 text-left">

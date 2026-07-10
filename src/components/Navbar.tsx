@@ -13,6 +13,10 @@ interface NavbarProps {
   setTheme: (theme: "dark" | "light") => void;
   language: "zh" | "en";
   setLanguage: (lang: "zh" | "en") => void;
+  settings?: {
+    nickname?: string;
+    avatarUrl?: string;
+  };
 }
 
 export default function Navbar({
@@ -24,6 +28,7 @@ export default function Navbar({
   setTheme,
   language,
   setLanguage,
+  settings,
 }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -60,17 +65,23 @@ export default function Navbar({
         {/* Logo */}
         <div 
           onClick={() => setActiveTab("home")}
-          className="flex items-center gap-1.5 cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group"
           id="nav-logo"
         >
-          <span className={`text-xl font-extrabold tracking-wider transition-all duration-500 bg-clip-text text-transparent ${
+          {settings?.avatarUrl ? (
+            <img src={settings.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover border border-white/10 transition-transform duration-300 group-hover:scale-110" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+              <span className="text-sm font-bold text-indigo-400">N</span>
+            </div>
+          )}
+          <span className={`text-lg font-extrabold tracking-wider transition-all duration-500 bg-clip-text text-transparent ${
             isLight
               ? "bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 group-hover:from-indigo-600 group-hover:to-slate-900"
               : "bg-gradient-to-r from-white via-slate-200 to-slate-400 group-hover:from-indigo-300 group-hover:to-white"
           }`}>
-            N.
+            {settings?.nickname || "Nono"}
           </span>
-          <span className={`w-1.5 h-1.5 rounded-full bg-indigo-500 transition-all duration-500 group-hover:scale-150 ${theme === "dark" ? "shadow-[0_0_8px_#6366f1]" : ""}`} />
         </div>
 
         {/* Desktop Menu */}

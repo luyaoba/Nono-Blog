@@ -99,6 +99,28 @@ export default function App() {
     localStorage.setItem("nono_theme", theme);
   }, [theme]);
 
+  // Dynamic page title from settings
+  useEffect(() => {
+    if (settings.siteTitle) {
+      document.title = settings.siteTitle;
+    } else if (settings.nickname) {
+      document.title = `${settings.nickname}'s Blog`;
+    }
+  }, [settings.siteTitle, settings.nickname]);
+
+  // Dynamic favicon from avatar
+  useEffect(() => {
+    if (settings.avatarUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = settings.avatarUrl;
+    }
+  }, [settings.avatarUrl]);
+
   // Monitor scroll height to show back-to-top button
   useEffect(() => {
     const handleScroll = () => {
@@ -209,7 +231,7 @@ export default function App() {
       case "categories":
         return <Categories onSelectCategory={handleSelectCategory} glowMode={glowMode} theme={theme} categories={categories} articles={articles.filter(a => a.status === "published")} language={language} />;
       case "about":
-        return <About glowMode={glowMode} theme={theme} language={language} />;
+        return <About glowMode={glowMode} theme={theme} language={language} settings={settings} />;
       case "contact":
         return <Contact glowMode={glowMode} theme={theme} language={language} />;
       default:
@@ -288,6 +310,7 @@ export default function App() {
         setTheme={setTheme}
         language={language}
         setLanguage={setLanguage}
+        settings={settings}
       />
 
       {/* Main Core View Area */}
