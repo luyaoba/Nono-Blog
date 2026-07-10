@@ -24,10 +24,12 @@ import {
   Globe,
   Cpu,
   Terminal,
-  Rocket
+  Rocket,
+  Search
 } from "lucide-react";
 import { Tag, Category } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
+import ConfirmDialog from "./ConfirmDialog";
 
 // Custom polished dropdown selector to replace native <select> elements
 function CustomSelect({ 
@@ -124,7 +126,11 @@ export default function AdminTags({
   // Pagination for tags and categories
   const [tagPage, setTagPage] = useState(1);
   const [catPage, setCatPage] = useState(1);
-  const itemsPerPage = 9;
+  const itemsPerPage = 6;
+
+  // Fuzzy search
+  const [tagSearch, setTagSearch] = useState("");
+  const [catSearch, setCatSearch] = useState("");
 
   // Form Fields for Tags
   const [tagName, setTagName] = useState("");
@@ -253,9 +259,14 @@ export default function AdminTags({
   };
 
   // Delete Tag
+  const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
   const handleDeleteTag = (id: string) => {
-    if (confirm(isZh ? "确定要删除这个标签吗？" : "Are you sure to delete this tag?")) {
-      onUpdateTags(tags.filter(t => t.id !== id));
+    setDeleteTagId(id);
+  };
+  const confirmDeleteTag = () => {
+    if (deleteTagId) {
+      onUpdateTags(tags.filter(t => t.id !== deleteTagId));
+      setDeleteTagId(null);
     }
   };
 
@@ -306,15 +317,18 @@ export default function AdminTags({
   };
 
   // Delete Category
+  const [deleteCatId, setDeleteCatId] = useState<string | null>(null);
   const handleDeleteCategory = (id: string) => {
     if (categories.length <= 1) {
       showToast(isZh ? "请至少保留一个分类！" : "Please keep at least one category!");
       return;
     }
-    if (confirm(isZh ? "确定要删除这个文章分类吗？" : "Are you sure to delete this category?")) {
-      if (onUpdateCategories) {
-        onUpdateCategories(categories.filter(c => c.id !== id));
-      }
+    setDeleteCatId(id);
+  };
+  const confirmDeleteCategory = () => {
+    if (deleteCatId && onUpdateCategories) {
+      onUpdateCategories(categories.filter(c => c.id !== deleteCatId));
+      setDeleteCatId(null);
     }
   };
 
@@ -498,10 +512,24 @@ export default function AdminTags({
             )}
           </AnimatePresence>
 
-          {/* Grid of tags */}
+          {/* Search + Grid of tags */}
+          <div className="space-y-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={tagSearch}
+                onChange={(e) => { setTagSearch(e.target.value); setTagPage(1); }}
+                className={`w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-all focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700 placeholder-slate-400" : "bg-[#05060a]/80 border-white/[0.06] text-slate-200 placeholder-slate-500"}`}
+                placeholder={isZh ? "搜索标签名称..." : "Search tags..."}
+              />
+            </div>
           {(() => {
-            const totalTagPages = Math.ceil(tags.length / itemsPerPage);
-            const pagedTags = tags.slice((tagPage - 1) * itemsPerPage, tagPage * itemsPerPage);
+            const filteredTags = tagSearch.trim()
+              ? tags.filter(t => t.name.toLowerCase().includes(tagSearch.toLowerCase()) || t.slug.toLowerCase().includes(tagSearch.toLowerCase()))
+              : tags;
+            const totalTagPages = Math.ceil(filteredTags.length / itemsPerPage);
+            const pagedTags = filteredTags.slice((tagPage - 1) * itemsPerPage, tagPage * itemsPerPage);
             return (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="tags-visual-grid">
@@ -579,6 +607,7 @@ export default function AdminTags({
               </>
             );
           })()}
+          </div>
         </div>
       )}
 
@@ -686,11 +715,25 @@ export default function AdminTags({
             )}
           </AnimatePresence>
 
-          {/* Grid of categories */}
+          {/* Search + Grid of categories */}
+          <div className="space-y-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input
+                type="text"
+                value={catSearch}
+                onChange={(e) => { setCatSearch(e.target.value); setCatPage(1); }}
+                className={`w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-all focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700 placeholder-slate-400" : "bg-[#05060a]/80 border-white/[0.06] text-slate-200 placeholder-slate-500"}`}
+                placeholder={isZh ? "搜索分类名称..." : "Search categories..."}
+              />
+            </div>
           {(() => {
             const validCats = categories.filter(c => c.title && c.title.trim() !== "");
-            const totalCatPages = Math.ceil(validCats.length / itemsPerPage);
-            const pagedCats = validCats.slice((catPage - 1) * itemsPerPage, catPage * itemsPerPage);
+            const filteredCats = catSearch.trim()
+              ? validCats.filter(c => c.title.toLowerCase().includes(catSearch.toLowerCase()) || (c.desc || "").toLowerCase().includes(catSearch.toLowerCase()))
+              : validCats;
+            const totalCatPages = Math.ceil(filteredCats.length / itemsPerPage);
+            const pagedCats = filteredCats.slice((catPage - 1) * itemsPerPage, catPage * itemsPerPage);
             return (
               <>
                 {validCats.length === 0 && (
@@ -770,8 +813,29 @@ export default function AdminTags({
               </>
             );
           })()}
+          </div>
         </div>
       )}
+      <ConfirmDialog
+        open={!!deleteTagId}
+        title={isZh ? "确认删除标签" : "Confirm Delete Tag"}
+        message={isZh ? "确定要删除这个标签吗？已关联的文章不会受影响。" : "Are you sure to delete this tag? Linked articles won't be affected."}
+        confirmLabel={isZh ? "确认删除" : "Delete"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        danger
+        onConfirm={confirmDeleteTag}
+        onCancel={() => setDeleteTagId(null)}
+      />
+      <ConfirmDialog
+        open={!!deleteCatId}
+        title={isZh ? "确认删除分类" : "Confirm Delete Category"}
+        message={isZh ? "确定要删除这个文章分类吗？已关联的文章不会受影响。" : "Are you sure to delete this category? Linked articles won't be affected."}
+        confirmLabel={isZh ? "确认删除" : "Delete"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        danger
+        onConfirm={confirmDeleteCategory}
+        onCancel={() => setDeleteCatId(null)}
+      />
       <AnimatePresence>
         {toast && (
           <motion.div

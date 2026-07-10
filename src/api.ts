@@ -53,6 +53,13 @@ export const api = {
   // 站点配置
   getSettings: () => request<Record<string, string>>('/api/settings'),
 
+  // 每日阅读统计（需JWT）
+  getDailyViews: (token: string, range: 'week' | 'month' | 'year' | 'all' | 'custom' = 'week', start?: string, end?: string) => {
+    let url = `/api/admin/daily-views?range=${range}`;
+    if (range === 'custom' && start && end) url += `&start=${start}&end=${end}`;
+    return request<any[]>(url, { headers: authHeaders(token) });
+  },
+
   // 登录
   login: (username: string, password: string) =>
     request<{ token: string; username: string }>('/api/auth/login', {
@@ -122,9 +129,10 @@ export function mapArticles(rows: any[]): Article[] {
   return rows.map(r => ({
     id: r.id, title: r.title, summary: r.summary, content: r.content || '',
     date: r.date, category: r.category, tags: r.tags || [],
-    readTime: r.read_time || '', views: r.views || 0, comments: r.comments_count || 0,
+    readTime: r.read_time || '', views: r.views || 0, likes: r.likes || 0, comments: r.comments_count || 0,
     gradient: r.gradient || '', thumbnailType: r.thumbnail_type || 'starfield',
     status: r.status || 'published', coverImage: r.cover_image || '',
+    updated_at: r.updated_at || '',
   }));
 }
 export function mapProjects(rows: any[]): Project[] {
@@ -148,5 +156,7 @@ export function mapSettings(obj: Record<string, string>): SiteSettings {
     siteDescription: obj.siteDescription || '',
     github: obj.github || '', twitter: obj.twitter || '',
     mail: obj.mail || '', homeImage: obj.homeImage || '',
+    location: obj.location || '', siteSloganEn: obj.siteSloganEn || '',
+    siteNotice: obj.siteNotice || '',
   };
 }

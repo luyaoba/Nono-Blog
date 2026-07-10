@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   BookOpen, 
@@ -14,48 +15,70 @@ import {
   Clock,
   Heart
 } from "lucide-react";
-import { Article, Tag, Comment } from "../../data/mockAdminData";
-import { translations } from "../../data/translations";
+import { Article, Tag } from "../../data/mockAdminData";
+import { api } from "../../api";
 
 interface AdminDashboardProps {
   articles: Article[];
   tags: Tag[];
-  comments: Comment[];
   onWritePost: () => void;
-  onViewComments: () => void;
   language?: "zh" | "en";
   theme?: "dark" | "light";
+  authToken?: string | null;
 }
 
 export default function AdminDashboard({
   articles,
   tags,
-  comments,
   onWritePost,
-  onViewComments,
   language = "zh",
   theme = "dark",
+  authToken,
 }: AdminDashboardProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
+
+  // Daily views state
+  const [viewRange, setViewRange] = useState<'week' | 'month' | 'year' | 'all' | 'custom'>('week');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const [dailyData, setDailyData] = useState<{ date: string; total: number }[]>([]);
+
+  useEffect(() => {
+    if (!authToken) return;
+    let cancelled = false;
+    const fetchArgs: [string, 'week' | 'month' | 'year' | 'all' | 'custom', string?, string?] = [authToken, viewRange];
+    if (viewRange === 'custom' && customStart && customEnd) {
+      fetchArgs[2] = customStart;
+      fetchArgs[3] = customEnd;
+    } else if (viewRange === 'custom') {
+      return; // 等待日期填完
+    }
+    api.getDailyViews(...fetchArgs)
+      .then(res => { if (!cancelled) setDailyData(res); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [authToken, viewRange, customStart, customEnd]);
   // Stat counts
   const totalPosts = articles.length;
   const totalTags = tags.length;
   const totalViews = articles.reduce((sum, a) => sum + a.views, 0);
   const totalLikes = articles.reduce((sum, a) => sum + (a.likes || 0), 0);
-  const pendingComments = comments.filter(c => c.status === "pending").length;
-  const monthlyViews = totalViews + 3480; // Simulated constant offset for current month
+  const publishedCount = articles.filter(a => a.status === "published").length;
 
-  // Chart Coordinates & Data for SVG Line Drawing (30-day visit simulation)
-  const chartPoints = [
-    { label: "06/10", val: 120 },
-    { label: "06/15", val: 320 },
-    { label: "06/20", val: 240 },
-    { label: "06/25", val: 480 },
-    { label: "06/30", val: 610 },
-    { label: "07/05", val: 890 },
-    { label: "07/08", val: 1100 },
-  ];
+  // Chart data from daily views API
+  const chartPoints = (() => {
+    if (dailyData.length === 0) {
+      return [{ label: isZh ? "暂无数据" : "No data", val: 0 }];
+    }
+    return dailyData.map(d => ({
+      label: d.date.slice(5), // MM-DD
+      val: d.total,
+    }));
+  })();
+
+  // Calculate total views from daily data for the selected range
+  const rangeViews = dailyData.reduce((sum, d) => sum + d.total, 0);
 
   // Map simulated values to SVG ViewBox coordinates (width: 600, height: 180)
   const svgWidth = 600;
@@ -70,11 +93,14 @@ export default function AdminDashboard({
 
   const maxVal = Math.max(...chartPoints.map((p) => p.val));
   const minVal = 0;
+  const valRange = maxVal - minVal || 1;
 
   // Generate SVG Points String
   const points = chartPoints.map((p, index) => {
-    const x = paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
-    const y = paddingTop + chartHeight - ((p.val - minVal) / (maxVal - minVal)) * chartHeight;
+    const x = chartPoints.length === 1
+      ? paddingLeft + chartWidth / 2
+      : paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
+    const y = paddingTop + chartHeight - ((p.val - minVal) / valRange) * chartHeight;
     return `${x},${y}`;
   }).join(" ");
 
@@ -106,9 +132,7 @@ export default function AdminDashboard({
           </div>
           <div className="mt-4 flex items-baseline gap-2">
             <span className={`text-3xl font-bold tracking-tight font-mono ${isLight ? "text-slate-800" : "text-white"}`}>{totalPosts}</span>
-            <span className="text-sm font-mono text-emerald-400 flex items-center gap-1">
-              +1 {isZh ? "篇本周" : "this week"} <ArrowUpRight className="w-3.5 h-3.5" />
-            </span>
+            <span className="text-sm font-mono text-slate-500">{isZh ? `已发布 ${publishedCount} 篇` : `${publishedCount} published`}</span>
           </div>
         </div>
 
@@ -131,16 +155,14 @@ export default function AdminDashboard({
         <div className={`p-5 rounded-2xl backdrop-blur-xl relative overflow-hidden group transition-all duration-300 ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/80 border border-white/[0.1] hover:border-emerald-500/20"}`}>
           <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-emerald-500/[0.015] blur-2xl pointer-events-none" />
           <div className="flex items-center justify-between">
-            <span className={`text-sm font-mono tracking-wider uppercase ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "本月访问人次" : "Monthly Visits"}</span>
+            <span className={`text-sm font-mono tracking-wider uppercase ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "全站总浏览量" : "Total Views"}</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className={`text-3xl font-bold tracking-tight font-mono ${isLight ? "text-slate-800" : "text-white"}`}>{monthlyViews}</span>
-            <span className="text-sm font-mono text-emerald-400 flex items-center gap-1">
-              +18.4% {isZh ? "环比" : "vs last month"} <TrendingUp className="w-3.5 h-3.5 animate-bounce" />
-            </span>
+            <span className={`text-3xl font-bold tracking-tight font-mono ${isLight ? "text-slate-800" : "text-white"}`}>{totalViews}</span>
+            <span className="text-sm font-mono text-slate-500">{isZh ? "总浏览量" : "total views"}</span>
           </div>
         </div>
       </div>
@@ -149,15 +171,58 @@ export default function AdminDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="dashboard-charts-and-actions">
         {/* Trend line chart (2/3 width) */}
         <div className={`lg:col-span-2 rounded-2xl p-6 backdrop-blur-xl flex flex-col justify-between ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`} id="dashboard-trend-chart-box">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
-              <h3 className={`text-base font-semibold tracking-wider ${isLight ? "text-slate-800" : "text-white"}`}>{isZh ? "流量走势分析（最近30天）" : "Traffic Trends (Last 30 Days)"}</h3>
-              <p className={`text-sm mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{isZh ? "边缘测点每日统计数据 (PV统计)" : "Daily edge metrics (PV)"}</p>
+              <h3 className={`text-base font-semibold tracking-wider ${isLight ? "text-slate-800" : "text-white"}`}>{isZh ? "阅读统计" : "Reading Statistics"}</h3>
+              <p className={`text-sm mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                {isZh ? `共 ${dailyData.length} 天，累计 ${rangeViews} 次阅读` : `${dailyData.length} days, ${rangeViews} total views`}
+              </p>
             </div>
-            <span className="text-sm font-mono text-indigo-400 bg-indigo-500/5 px-2.5 py-1 border border-indigo-500/10 rounded-md">
-              {isZh ? "指标：访问量" : "Metric: Visits"}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {(['week', 'month', 'year', 'all'] as const).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setViewRange(r)}
+                  className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-all cursor-pointer ${
+                    viewRange === r
+                      ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/25"
+                      : "bg-transparent text-slate-500 border-white/[0.06] hover:text-slate-300"
+                  }`}
+                >
+                  {r === 'week' ? (isZh ? "7天" : "7D") : r === 'month' ? (isZh ? "30天" : "30D") : r === 'year' ? (isZh ? "年度" : "Year") : (isZh ? "全部" : "All")}
+                </button>
+              ))}
+              <button
+                onClick={() => setViewRange('custom')}
+                className={`text-xs font-mono px-2.5 py-1 rounded-md border transition-all cursor-pointer ${
+                  viewRange === 'custom'
+                    ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/25"
+                    : "bg-transparent text-slate-500 border-white/[0.06] hover:text-slate-300"
+                }`}
+              >
+                {isZh ? "自定义" : "Custom"}
+              </button>
+            </div>
           </div>
+
+          {/* Custom date range picker */}
+          {viewRange === 'custom' && (
+            <div className="flex items-center gap-2 mb-3">
+              <input
+                type="date"
+                value={customStart}
+                onChange={e => setCustomStart(e.target.value)}
+                className={`text-xs font-mono px-2 py-1 rounded-md border outline-none ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-[#0a0c14] border-white/[0.08] text-slate-300"}`}
+              />
+              <span className="text-xs text-slate-500">—</span>
+              <input
+                type="date"
+                value={customEnd}
+                onChange={e => setCustomEnd(e.target.value)}
+                className={`text-xs font-mono px-2 py-1 rounded-md border outline-none ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-[#0a0c14] border-white/[0.08] text-slate-300"}`}
+              />
+            </div>
+          )}
 
           {/* SVG Animated line chart */}
           <div className={`w-full h-48 rounded-xl flex items-center justify-center p-2 relative overflow-hidden ${isLight ? "bg-[#f8f7f4] border border-[#e5e2db]" : "bg-[#040508]/40 border border-white/[0.06]"}`}>
@@ -209,8 +274,10 @@ export default function AdminDashboard({
 
               {/* Glowing Interactive Data Nodes */}
               {chartPoints.map((p, index) => {
-                const x = paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
-                const y = paddingTop + chartHeight - ((p.val - minVal) / (maxVal - minVal)) * chartHeight;
+                const x = chartPoints.length === 1
+                  ? paddingLeft + chartWidth / 2
+                  : paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
+                const y = paddingTop + chartHeight - ((p.val - minVal) / valRange) * chartHeight;
                 return (
                   <g key={index} className="group/node cursor-pointer">
                     <circle
@@ -246,7 +313,9 @@ export default function AdminDashboard({
 
               {/* X-axis indicators */}
               {chartPoints.map((p, index) => {
-                const x = paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
+                const x = chartPoints.length === 1
+                  ? paddingLeft + chartWidth / 2
+                  : paddingLeft + (index / (chartPoints.length - 1)) * chartWidth;
                 return (
                   <text
                     key={index}
@@ -285,28 +354,6 @@ export default function AdminDashboard({
               </div>
               <ArrowUpRight className="w-3.5 h-3.5 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5" />
             </button>
-
-            {/* Quick comment approval */}
-            <button
-              onClick={onViewComments}
-              className={`w-full flex items-center justify-between p-3.5 rounded-xl transition-all cursor-pointer group ${isLight ? "bg-[#f8f7f4] border border-[#e5e2db] text-slate-600 hover:bg-[#f0efeb]" : "bg-white/[0.02] border border-white/[0.08] text-slate-300 hover:bg-white/[0.05] hover:text-white"}`}
-              id="quick-action-manage-comments"
-            >
-              <div className="flex items-center gap-3">
-                <MessageSquare className="w-4 h-4 text-slate-400" />
-                <span className="text-sm font-semibold tracking-wide">{isZh ? "最新读者留言" : "Latest Comments"}</span>
-              </div>
-              <span className={`text-sm font-mono px-2.5 py-1 rounded-full border ${
-                pendingComments > 0
-                  ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                  : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-              }`}>
-                {pendingComments > 0
-                  ? `${pendingComments} ${isZh ? "待审核" : "pending"}`
-                  : `${comments.length} ${isZh ? "条留言" : "comments"}`
-                }
-              </span>
-            </button>
           </div>
 
           <div className={`mt-6 p-3 rounded-xl flex items-center gap-2.5 ${isLight ? "bg-[#f8f7f4] border border-[#e5e2db]" : "bg-slate-900/30 border border-white/[0.06]"}`}>
@@ -318,10 +365,10 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      {/* Latest Submissions grid */}
+      {/* Latest Articles grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" id="dashboard-recent-feeds">
         {/* Recent 5 Articles */}
-        <div className={`rounded-2xl p-6 backdrop-blur-xl ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`} id="dashboard-recent-posts">
+        <div className={`rounded-2xl p-6 backdrop-blur-xl lg:col-span-2 ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`} id="dashboard-recent-posts">
           <div className={`flex items-center justify-between pb-4 mb-4 ${isLight ? "border-b border-[#e5e2db]" : "border-b border-white/[0.08]"}`}>
             <h3 className={`text-base font-semibold tracking-wider flex items-center gap-2 ${isLight ? "text-slate-800" : "text-white"}`}>
               <Clock className="w-4.5 h-4.5 text-indigo-400" />
@@ -364,38 +411,6 @@ export default function AdminDashboard({
                   }`}>
                     {art.status === "published" ? (isZh ? "已发布" : "Published") : (isZh ? "草稿" : "Draft")}
                   </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent 5 Comments */}
-        <div className={`rounded-2xl p-6 backdrop-blur-xl ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/70 border border-white/[0.08]"}`} id="dashboard-recent-comments">
-          <div className={`flex items-center justify-between pb-4 mb-4 ${isLight ? "border-b border-[#e5e2db]" : "border-b border-white/[0.08]"}`}>
-            <h3 className={`text-base font-semibold tracking-wider flex items-center gap-2 ${isLight ? "text-slate-800" : "text-white"}`}>
-              <MessageSquare className="w-4.5 h-4.5 text-indigo-400" />
-              <span>{isZh ? "最新评论留言" : "Latest Comments"}</span>
-            </h3>
-            <span className="text-sm text-indigo-400 font-mono">{isZh ? "最新留言" : "Newest"}</span>
-          </div>
-
-          <div className="space-y-3">
-            {comments.slice(0, 5).map((comm) => (
-              <div 
-                key={comm.id}
-                className={`p-3 rounded-xl border transition-colors ${isLight ? "bg-[#f8f7f4] border-[#e5e2db]" : "bg-white/[0.01] hover:bg-white/[0.03] border-white/[0.06]"}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src={comm.avatar} alt="avatar" className="w-5 h-5 rounded-full bg-slate-800" />
-                    <span className={`text-sm font-bold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{comm.author}</span>
-                  </div>
-                  <span className={`text-sm font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>{comm.date}</span>
-                </div>
-                <p className={`text-sm mt-2 truncate ${isLight ? "text-slate-600" : "text-slate-400"}`}>{comm.content}</p>
-                <div className="text-sm text-indigo-400 font-mono mt-1 truncate">
-                  {isZh ? "源自" : "From"}: 《{comm.articleTitle}》
                 </div>
               </div>
             ))}

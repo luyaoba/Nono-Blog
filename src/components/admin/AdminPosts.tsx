@@ -17,10 +17,13 @@ import {
   RefreshCw,
   FolderOpen,
   Image as ImageIcon,
-  Upload
+  Upload,
+  EyeOff
 } from "lucide-react";
 import { Article, Category } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
+import { adminApi } from "../../api";
+import ConfirmDialog from "./ConfirmDialog";
 
 // Custom polished dropdown selector to replace ugly native <select> elements
 function CustomSelect({ 
@@ -91,11 +94,12 @@ interface AdminPostsProps {
   articles: Article[];
   onUpdateArticles: (updated: Article[]) => void;
   categories?: Category[];
+  authToken?: string | null;
   language?: "zh" | "en";
   theme?: "dark" | "light";
 }
 
-export default function AdminPosts({ articles, onUpdateArticles, categories = [], language = "zh", theme = "dark" }: AdminPostsProps) {
+export default function AdminPosts({ articles, onUpdateArticles, categories = [], authToken, language = "zh", theme = "dark" }: AdminPostsProps) {
   const isZh = language === "zh";
   const t = translations[language];
   const isLight = theme === "light";
@@ -150,11 +154,50 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     setIsEditing(true);
   };
 
+  // Unpublish confirmation
+  const [unpublishTarget, setUnpublishTarget] = useState<string | null>(null);
+
   // Delete
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const handleDelete = (id: string) => {
-    if (confirm(isZh ? "确定要删除这篇文章吗？" : "Are you sure you want to delete this article?")) {
-      const updated = articles.filter(a => a.id !== id);
+    setDeleteTarget(id);
+  };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      if (authToken) {
+        await adminApi.deleteArticle(authToken, deleteTarget);
+      }
+      const updated = articles.filter(a => a.id !== deleteTarget);
       onUpdateArticles(updated);
+    } catch {
+      // 删除失败时仍然更新本地状态
+      const updated = articles.filter(a => a.id !== deleteTarget);
+      onUpdateArticles(updated);
+    } finally {
+      setDeleteTarget(null);
+      setDeleteLoading(false);
+    }
+  };
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [jumpPage, setJumpPage] = useState('');
+  const totalPages = Math.max(1, Math.ceil(filteredArticles.length / pageSize));
+  const paginatedArticles = filteredArticles.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Reset to page 1 when filter changes
+  const handleSearchChange = (val: string) => { setSearchTerm(val); setCurrentPage(1); };
+  const handleCategoryChange = (val: string) => { setFilterCategory(val); setCurrentPage(1); };
+
+  const handleJumpPage = () => {
+    const page = parseInt(jumpPage);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      setJumpPage('');
     }
   };
 
@@ -214,7 +257,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                   <input
                     type="text"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className={`w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-all font-sans focus:border-indigo-500/40 ${
                       isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700 placeholder-slate-400" : "bg-[#05060a]/80 border-white/[0.06] text-slate-200 placeholder-slate-500"
                     }`}
@@ -226,7 +269,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                 <div className="w-full sm:w-44">
                   <CustomSelect 
                     value={filterCategory}
-                    onChange={(val) => setFilterCategory(val)}
+                    onChange={(val) => handleCategoryChange(val)}
                     options={categoriesList}
                     placeholder={isZh ? "全部分类" : "All Categories"}
                     isLight={isLight}
@@ -256,12 +299,13 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                       <th className="py-4 px-6">{isZh ? "标签" : "Tags"}</th>
                       <th className="py-4 px-6">{isZh ? "发布状态" : "Status"}</th>
                       <th className="py-4 px-6">{isZh ? "发布时间" : "Date"}</th>
+                      <th className="py-4 px-6">{isZh ? "修改时间" : "Modified"}</th>
                       <th className="py-4 px-6 text-right">{isZh ? "操作" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className={isLight ? "divide-y divide-[#e5e2db]" : "divide-y divide-white/[0.06]"}>
-                    {filteredArticles.length > 0 ? (
-                      filteredArticles.map((art) => (
+                    {paginatedArticles.length > 0 ? (
+                      paginatedArticles.map((art) => (
                         <tr 
                           key={art.id} 
                           className={`hover:bg-white/[0.01] transition-all text-sm ${isLight ? "hover:bg-[#f8f7f4]" : ""}`}
@@ -336,23 +380,46 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                             {art.date}
                           </td>
 
+                          {/* Modified time */}
+                          <td className={`py-4 px-6 font-mono text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                            {(art as any).updated_at || '—'}
+                          </td>
+
                           {/* Operations */}
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-2.5">
-                              {/* Quick Visibility Toggle */}
+                              {/* Preview - open article detail */}
                               <button
-                                onClick={() => {
-                                  const updated = articles.map(a => a.id === art.id ? { ...a, status: (a.status === "published" ? "draft" : "published") as "published" | "draft" } : a);
-                                  onUpdateArticles(updated);
+                                onClick={() => window.open(`/article/${art.id}`, '_blank')}
+                                className="p-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/20 transition-all cursor-pointer"
+                                title={isZh ? "预览文章" : "Preview Article"}
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Unpublish/Publish toggle */}
+                              <button
+                                onClick={async () => {
+                                  if (art.status === "published") {
+                                    setUnpublishTarget(art.id);
+                                  } else {
+                                    try {
+                                      if (authToken) {
+                                        await adminApi.updateArticle(authToken, art.id, { status: 'published' });
+                                      }
+                                    } catch {}
+                                    const updated = articles.map(a => a.id === art.id ? { ...a, status: "published" as const } : a);
+                                    onUpdateArticles(updated);
+                                  }
                                 }}
                                 className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
                                   art.status === "published" 
                                     ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20" 
                                     : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20"
                                 }`}
-                                title={art.status === "published" ? (isZh ? "一键下线" : "Unpublish") : (isZh ? "一键上线" : "Publish")}
+                                title={art.status === "published" ? (isZh ? "下线文章" : "Unpublish") : (isZh ? "发布文章" : "Publish")}
                               >
-                                <Eye className="w-3.5 h-3.5" />
+                                {art.status === "published" ? <EyeOff className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                               </button>
 
                               {/* Edit */}
@@ -378,7 +445,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className={`py-12 text-center text-sm font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                        <td colSpan={7} className={`py-12 text-center text-sm font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>
                           {isZh ? "没有找到匹配的文章记录" : "No matching articles found"}
                         </td>
                       </tr>
@@ -386,6 +453,74 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                   </tbody>
                 </table>
               </div>
+
+              {/* Pagination */}
+              {filteredArticles.length > pageSize && (
+                <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 ${isLight ? "border-t border-[#e5e2db]" : "border-t border-white/[0.06]"}`}>
+                  <span className={`text-xs font-mono ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                    {isZh
+                      ? `共 ${filteredArticles.length} 篇，第 ${currentPage}/${totalPages} 页`
+                      : `${filteredArticles.length} articles, page ${currentPage}/${totalPages}`}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-600 hover:bg-[#f0efeb]" : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.04]"}`}
+                    >
+                      {isZh ? "上一页" : "Prev"}
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+                        .map((p, idx, arr) => {
+                          const prev = arr[idx - 1];
+                          const showEllipsis = prev !== undefined && p - prev > 1;
+                          return (
+                            <span key={p} className="flex items-center">
+                              {showEllipsis && <span className="px-1 text-slate-600">…</span>}
+                              <button
+                                onClick={() => setCurrentPage(p)}
+                                className={`w-8 h-8 rounded-lg text-xs font-mono border transition-all cursor-pointer ${
+                                  p === currentPage
+                                    ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/25"
+                                    : isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-600 hover:bg-[#f0efeb]" : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.04]"
+                                }`}
+                              >
+                                {p}
+                              </button>
+                            </span>
+                          );
+                        })}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage >= totalPages}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-600 hover:bg-[#f0efeb]" : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.04]"}`}
+                    >
+                      {isZh ? "下一页" : "Next"}
+                    </button>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <input
+                        type="number"
+                        min={1}
+                        max={totalPages}
+                        value={jumpPage}
+                        onChange={e => setJumpPage(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleJumpPage()}
+                        placeholder={isZh ? "页码" : "Page"}
+                        className={`w-16 px-2 py-1.5 rounded-lg text-xs font-mono border outline-none text-center ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-white/[0.02] border-white/[0.06] text-slate-300"}`}
+                      />
+                      <button
+                        onClick={handleJumpPage}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-600 hover:bg-[#f0efeb]" : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:bg-white/[0.04]"}`}
+                      >
+                        {isZh ? "跳转" : "Go"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         ) : (
@@ -641,6 +776,37 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
           </motion.div>
         )}
       </AnimatePresence>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={isZh ? "确认删除文章" : "Confirm Delete"}
+        message={isZh ? "确定要删除这篇文章吗？此操作不可撤销。" : "Are you sure you want to delete this article? This action cannot be undone."}
+        confirmLabel={isZh ? "确认删除" : "Delete"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+      <ConfirmDialog
+        open={!!unpublishTarget}
+        title={isZh ? "确认下线文章" : "Confirm Unpublish"}
+        message={isZh ? "下线后文章将不再对外展示，确定要继续吗？" : "This article will be hidden from the site. Continue?"}
+        confirmLabel={isZh ? "确认下线" : "Unpublish"}
+        cancelLabel={isZh ? "取消" : "Cancel"}
+        danger
+        onConfirm={async () => {
+          if (unpublishTarget) {
+            try {
+              if (authToken) {
+                await adminApi.updateArticle(authToken, unpublishTarget, { status: 'draft' });
+              }
+            } catch {}
+            const updated = articles.map(a => a.id === unpublishTarget ? { ...a, status: "draft" as const } : a);
+            onUpdateArticles(updated);
+            setUnpublishTarget(null);
+          }
+        }}
+        onCancel={() => setUnpublishTarget(null)}
+      />
     </div>
   );
 }

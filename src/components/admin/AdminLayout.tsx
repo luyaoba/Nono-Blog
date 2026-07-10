@@ -24,6 +24,7 @@ interface AdminLayoutProps {
   setActiveSubTab: (tab: string) => void;
   onLogout: () => void;
   onExitConsole: () => void;
+  loading?: boolean;
   language?: "zh" | "en";
   theme?: "dark" | "light";
   settings?: {
@@ -38,6 +39,7 @@ export default function AdminLayout({
   setActiveSubTab, 
   onLogout, 
   onExitConsole,
+  loading = false,
   language = "zh",
   theme = "dark",
   settings,
@@ -52,7 +54,6 @@ export default function AdminLayout({
     { id: "dashboard", label: isZh ? "控制台首屏" : "Dashboard", icon: LayoutDashboard },
     { id: "posts", label: isZh ? "文章内容管理" : "Articles", icon: BookOpen },
     { id: "tags", label: isZh ? "标签分类管理" : "Tags & Categories", icon: Tags },
-    { id: "comments", label: isZh ? "评论留言管理" : "Comments", icon: MessageSquare },
     { id: "settings", label: isZh ? "站点属性配置" : "Settings", icon: SettingsIcon },
   ];
 
@@ -121,15 +122,19 @@ export default function AdminLayout({
           {/* User Profile Info Info */}
           <div className={`px-4 ${isCollapsed ? "text-center" : ""}`}>
             <div className={`flex items-center gap-3 p-3 rounded-2xl transition-colors ${isLight ? "bg-[#f0efeb] border border-[#e5e2db]" : "bg-white/[0.02] border border-white/[0.06]"} ${isCollapsed ? "justify-center" : ""}`}>
-              <img
-                src={settings?.avatarUrl || "https://api.dicebear.com/7.x/pixel-art/svg?seed=nono"}
-                alt={settings?.nickname || "Nono"}
-                referrerPolicy="no-referrer"
-                className={`w-9 h-9 rounded-xl shrink-0 object-cover ${isLight ? "border border-[#e5e2db] bg-[#f0efeb]" : "border border-white/10 bg-[#0f111a]"}`}
-              />
+              {loading ? (
+                <div className={`w-9 h-9 rounded-xl shrink-0 animate-pulse ${isLight ? "bg-slate-200" : "bg-white/[0.05]"}`} />
+              ) : (
+                <img
+                  src={settings?.avatarUrl || "https://api.dicebear.com/7.x/pixel-art/svg?seed=nono"}
+                  alt={settings?.nickname || "Nono"}
+                  referrerPolicy="no-referrer"
+                  className={`w-9 h-9 rounded-xl shrink-0 object-cover ${isLight ? "border border-[#e5e2db] bg-[#f0efeb]" : "border border-white/10 bg-[#0f111a]"}`}
+                />
+              )}
               {!isCollapsed && (
                 <div className="overflow-hidden">
-                  <h4 className={`text-sm font-semibold tracking-wider truncate ${isLight ? "text-slate-800" : "text-white"}`}>{settings?.nickname || "Nono"}</h4>
+                  <h4 className={`text-sm font-semibold tracking-wider truncate ${isLight ? "text-slate-800" : "text-white"}`}>{loading ? '—' : (settings?.nickname || "Nono")}</h4>
                   <p className={`text-xs font-medium tracking-wide ${isLight ? "text-indigo-600" : "text-indigo-400"}`}>{isZh ? "主站创作者" : "Site Creator"}</p>
                 </div>
               )}

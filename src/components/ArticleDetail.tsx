@@ -30,6 +30,13 @@ export default function ArticleDetail({ articleId, onBack, glowMode = true, them
   // Find the actual article in the reactive state database
   const targetArticle = articles.find((a) => a.id === articleId) || articles[0];
 
+  // 触发浏览量自增（调用单篇文章 API）
+  useEffect(() => {
+    if (!targetArticle?.id) return;
+    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/articles/${targetArticle.id}`)
+      .catch(() => {});
+  }, [targetArticle?.id]);
+
   // 获取文章点赞状态
   useEffect(() => {
     if (!targetArticle?.id) return;

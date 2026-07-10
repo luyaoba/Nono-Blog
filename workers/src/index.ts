@@ -136,8 +136,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (!article) return error('文章不存在', 404);
     const tags = await env.DB.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').bind(id).all();
     (article as any).tags = (tags.results || []).map((t: any) => t.name);
-    // 自增浏览量
+    // 自增浏览量 + 记录每日阅读
     await env.DB.prepare('UPDATE articles SET views = views + 1 WHERE id = ?').bind(id).run();
+    const today = new Date().toISOString().slice(0, 10);
+    await env.DB.prepare('INSERT INTO daily_views (article_id, date, views) VALUES (?, ?, 1) ON CONFLICT(article_id, date) DO UPDATE SET views = views + 1').bind(id, today).run();
     return json(article);
   }
 
@@ -204,7 +206,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (!user) return error('用户名或密码错误', 401);
     // 简单密码比对（生产环境应使用 bcrypt）
     if (body.password !== user.password_hash) return error('用户名或密码错误', 401);
-    const token = await signJwt({ sub: user.username, exp: Math.floor(Date.now() / 1000) + 7200 }, env.JWT_SECRET);
+    const token = await signJwt({ sub: user.username, exp: Math.floor(Date.now() / 1000) + 604800 }, env.JWT_SECRET);
     return json({ token, username: user.username });
   }
 
@@ -287,6 +289,33 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const origin = new URL(request.url).origin;
     const imageUrl = `${origin}/api/images/${key}`;
     return json({ url: imageUrl, key }, 201);
+  }
+
+  // 获取每日阅读统计（管理员）
+  if (path === '/api/admin/daily-views' && method === 'GET') {
+    const range = url.searchParams.get('range') || 'week'; // week | month | year | all | custom
+    const startDate = url.searchParams.get('start');
+    const endDate = url.searchParams.get('end');
+    let dateFilter = '';
+    if (range === 'custom' && startDate && endDate) {
+      dateFilter = ` AND date >= '${startDate}' AND date <= '${endDate}'`;
+    } else if (range === 'week') {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+    } else if (range === 'month') {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+    } else if (range === 'year') {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - 1);
+      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+    }
+    const { results } = await env.DB.prepare(
+      `SELECT date, SUM(views) as total FROM daily_views WHERE 1=1${dateFilter} GROUP BY date ORDER BY date`
+    ).all();
+    return json(results || []);
   }
 
   return error('未找到接口', 404);

@@ -69,6 +69,9 @@ export interface SiteSettings {
   twitter: string;
   mail: string;
   homeImage?: string; // Configurable homepage image URL
+  location?: string; // Location display on About page
+  siteSloganEn?: string; // English slogan
+  siteNotice?: string; // Site notice/badge text
 }
 
 // Initial pre-populated data for standard synchronization
@@ -105,7 +108,7 @@ Cloudflare Pages 是专门为全栈和静态前端项目打造的托管平台。
 4. 在构建配置中，选择对应的框架模板（例如 \`Next.js (Static Export)\` 或 \`Vite\`）。
 5. 点击 **保存并部署**。
 `,
-    date: "2024-05-20",
+    date: "2026-05-20",
     category: "Cloudflare",
     tags: ["Cloudflare", "部署", "Next.js", "TypeScript"],
     readTime: "8分钟阅读",
@@ -137,7 +140,7 @@ const AdminDashboard = lazy(() => import('./components/admin/Dashboard'));
 \`\`\`
 这样可以让包体积大幅度减小，极大加快首屏加载速度。
 `,
-    date: "2024-05-15",
+    date: "2026-05-15",
     category: "前端开发",
     tags: ["React", "Vite", "性能优化", "Tailwind"],
     readTime: "6分钟阅读",
@@ -163,7 +166,7 @@ const AdminDashboard = lazy(() => import('./components/admin/Dashboard'));
 ## 2. 知识库与内容发布
 通过 Markdown 与 Git 进行版本管理，使用微型 Node.js 脚本一键发布到本地、云端以及多个社交媒体的技术矩阵。
 `,
-    date: "2024-05-01",
+    date: "2026-05-01",
     category: "工具推荐",
     tags: ["工具", "配置", "Workflow", "Mac"],
     readTime: "5分钟阅读",
@@ -202,7 +205,7 @@ class GlobalStore {
 ## 2. 观察者模式 (Observer Pattern)
 React 的数据流就是经典的观察者模式体现。自定义 Hooks 可以优雅地包装全局观察者订阅。
 `,
-    date: "2024-04-20",
+    date: "2026-04-20",
     category: "设计美学",
     tags: ["设计模式", "TypeScript", "架构", "React"],
     readTime: "10分钟阅读",

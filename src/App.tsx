@@ -280,6 +280,16 @@ export default function App() {
 
 
 
+      {/* Loading gate: 等 API 数据就绪后再渲染，避免 INITIAL 数据闪烁 */}
+      {loading ? (
+        <div className="flex-grow flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin" />
+            <span className="text-sm font-mono text-slate-500 tracking-wider">Loading...</span>
+          </div>
+        </div>
+      ) : (
+      <>
       {/* Shared Header Navigation */}
       <Navbar
         activeTab={activeTab}
@@ -331,6 +341,8 @@ export default function App() {
           </div>
         </div>
       </footer>
+      </>
+      )}
 
       {/* Scroll to Top floating Button */}
       {showScrollTop && (

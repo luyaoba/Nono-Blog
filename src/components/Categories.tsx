@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
 import { Laptop, Server, Cloud, Palette, PenTool, Wrench, ArrowUpRight, Brain, Globe, Cpu, Terminal, Flame, Sparkles, Rocket } from "lucide-react";
 import { Category, Article } from "../data/mockAdminData";
@@ -26,6 +27,10 @@ export default function Categories({
   const actualGlow = theme === "glow";
   const isZh = language === "zh";
   const t = translations[language];
+
+  // Pagination: 6 categories per page
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const getCategoryTheme = (iconType: string) => {
     switch (iconType) {
@@ -150,8 +155,13 @@ export default function Categories({
       </div>
 
       {/* Grid Bento Layout */}
+      {(() => {
+        const totalPages = Math.ceil(displayList.length / itemsPerPage);
+        const pagedList = displayList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+        return (
+          <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="categories-grid">
-        {displayList.map((cat, index) => {
+        {pagedList.map((cat, index) => {
           const catTheme = getCategoryTheme(cat.iconType || "laptop");
           
           // Compute dynamic counts from articles
@@ -215,6 +225,55 @@ export default function Categories({
           );
         })}
       </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-12">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
+                    currentPage === 1
+                      ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
+                      : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
+                  }`}
+                >
+                  {isZh ? "上一页" : "Prev"}
+                </button>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const p = idx + 1;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setCurrentPage(p)}
+                        className={`w-8 h-8 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === p
+                            ? "bg-white text-slate-900 shadow-[0_0_12px_rgba(255,255,255,0.1)]"
+                            : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wider transition-all border ${
+                    currentPage === totalPages
+                      ? "opacity-30 cursor-not-allowed text-slate-500 border-transparent bg-transparent"
+                      : "bg-white/[0.02] border-white/[0.04] text-slate-400 hover:text-white hover:bg-white/[0.05] cursor-pointer"
+                  }`}
+                >
+                  {isZh ? "下一页" : "Next"}
+                </button>
+              </div>
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }

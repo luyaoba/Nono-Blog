@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Globe, Menu, X, Sparkles } from "lucide-react";
 import { translations } from "../data/translations";
 
@@ -29,6 +29,14 @@ export default function Navbar({
   settings,
 }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const t = translations[language];
 
@@ -42,10 +50,14 @@ export default function Navbar({
   const isLight = theme === "light";
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl border-b transition-all duration-300 ${
-      isLight 
-        ? "bg-[#fefdfb]/80 border-[#e5e2db]/60 shadow-xs text-slate-800" 
-        : "bg-[#07080c]/60 border-white/[0.04] text-slate-100"
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      scrolled
+        ? isLight
+          ? "backdrop-blur-xl border-b bg-[#fefdfb]/80 border-[#e5e2db]/60 shadow-xs text-slate-800"
+          : "backdrop-blur-xl border-b bg-[#07080c]/70 border-white/[0.04] text-slate-100"
+        : isLight
+          ? "border-b border-transparent bg-transparent text-slate-800"
+          : "border-b border-transparent bg-transparent text-slate-100"
     }`}>
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}

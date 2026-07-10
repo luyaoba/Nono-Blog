@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Search, Calendar, Clock, Eye, MessageSquare, ArrowRight } from "lucide-react";
+import { Search, Calendar, Clock, Eye, Heart, ArrowRight } from "lucide-react";
 import { translations } from "../data/translations";
 
 export interface Article {
@@ -14,6 +14,7 @@ export interface Article {
   tags: string[];
   readTime: string;
   views: number;
+  likes?: number;
   comments: number;
   gradient: string; // Background gradient for high-quality thumbnail
   thumbnailType: "mesh" | "starfield" | "aurora" | "vortex";
@@ -236,7 +237,7 @@ export default function Articles({
         isLight ? "border-[#e5e2db]" : "border-white/[0.06]"
       }`}>
         {/* Tags filters */}
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-3 lg:pb-0 scrollbar-none" id="articles-tabs">
+        <div className="flex flex-wrap items-center gap-2.5 pb-3 lg:pb-0" id="articles-tabs">
           {finalCategories.map((cat) => (
             <button
               key={cat}
@@ -349,7 +350,7 @@ export default function Articles({
                       <Eye className="w-3.5 h-3.5" /> {article.views}
                     </span>
                     <span className="flex items-center gap-1">
-                      <MessageSquare className="w-3.5 h-3.5" /> {article.comments}
+                      <Heart className="w-3.5 h-3.5 text-rose-400" /> {article.likes ?? 0}
                     </span>
                   </div>
 

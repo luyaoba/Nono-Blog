@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Github, Mail, MapPin, ExternalLink, Calendar, Code } from "lucide-react";
+import { Github, Mail, MapPin, ExternalLink, Calendar, Code, Pen, Layers, Lightbulb } from "lucide-react";
 import { translations } from "../data/translations";
 
 interface AboutProps {
@@ -16,7 +16,9 @@ interface AboutProps {
     title?: string;
     avatarUrl?: string;
     github?: string;
+    twitter?: string;
     mail?: string;
+    location?: string;
   };
 }
 
@@ -27,48 +29,42 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
   const t = translations[language];
 
   const stats = [
-    { value: "3+", label: isZh ? "年研发经验" : "Years Experience" },
-    { value: "20+", label: isZh ? "开源与实验项目" : "Open Source Projects" },
-    { value: "∞", label: isZh ? "持续探索与热爱" : "Endless Passion" },
+    { value: "8+", label: isZh ? "原创文章" : "Original Articles" },
+    { value: "16", label: isZh ? "技术标签" : "Tech Tags" },
+    { value: "✓", label: isZh ? "持续更新中" : "Actively Updating" },
   ];
 
-  const timeline = isZh ? [
+  const focusAreas = isZh ? [
     {
-      year: "2024 - 至今",
-      role: "独立开发者 & 顾问",
-      company: "专注于极简 design 美学与前沿 Serverless 技术生态",
-      desc: "研发并部署多个开源极简工具。为初创团队提供 React/Next.js 前端性能优化与 Cloudflare 部署架构咨询。",
+      icon: "code",
+      title: "前端工程与性能优化",
+      desc: "React / Next.js / TypeScript 全栈实践，追求极致的首屏渲染速度与流畅交互体验。",
     },
     {
-      year: "2022 - 2024",
-      role: "全栈工程师",
-      company: "主导高性能 SaaS 数据监控平台的前端架构",
-      desc: "使用 React/TypeScript 重构核心数据大屏组件库，提升并发大数据量场景下的流畅度，将综合首屏首帧加载耗时缩短了 45%。",
+      icon: "layers",
+      title: "Cloudflare 全栈部署",
+      desc: "Workers + D1 + R2 架构，Serverless 优先，零运维、全球边缘加速。",
     },
     {
-      year: "2020 - 2022",
-      role: "高级前端开发",
-      company: "负责企业级中台组件库设计与研发",
-      desc: "负责设计并维护统一的视觉标准（Design System），编写易复用、强鲁棒性的核心通用组件，打通像素级还原的最佳工程化流程。",
+      icon: "design",
+      title: "设计美学与交互细节",
+      desc: "太空极简风、像素级还原、微动效缓动曲线，相信好的产品源自对细节的偏执。",
     },
   ] : [
     {
-      year: "2024 - Present",
-      role: "Indie Developer & Consultant",
-      company: "Focused on minimalist design aesthetics & cutting-edge Serverless",
-      desc: "Built and deployed multiple open-source tools. Provided React/Next.js performance optimization and Cloudflare deployment consulting for startups.",
+      icon: "code",
+      title: "Frontend Engineering & Performance",
+      desc: "React / Next.js / TypeScript full-stack practice, pursuing ultimate first-paint speed and smooth interactions.",
     },
     {
-      year: "2022 - 2024",
-      role: "Full-Stack Engineer",
-      company: "Led frontend architecture for a high-performance SaaS platform",
-      desc: "Rebuilt core dashboard component library with React/TypeScript, improving throughput under heavy data scenarios and reducing first-paint time by 45%.",
+      icon: "layers",
+      title: "Cloudflare Full-Stack Deployment",
+      desc: "Workers + D1 + R2 architecture, Serverless-first, zero-ops global edge acceleration.",
     },
     {
-      year: "2020 - 2022",
-      role: "Senior Frontend Developer",
-      company: "Enterprise design system and component library",
-      desc: "Designed and maintained a unified Design System, wrote reusable and robust core components, established pixel-perfect engineering workflows.",
+      icon: "design",
+      title: "Design Aesthetics & Micro-interactions",
+      desc: "Space-minimalist style, pixel-perfect implementation, subtle easing curves — great products come from obsessive detail.",
     },
   ];
 
@@ -148,7 +144,7 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
             <h2 className={`text-xl font-bold mb-1 ${isLight ? "text-slate-800" : "text-slate-100"}`} id="about-username">{settings?.nickname || "Nono"}</h2>
             <p className={`text-sm font-medium mb-2 tracking-wide ${isLight ? "text-indigo-600" : "text-indigo-400"}`}>{settings?.title || (isZh ? "全栈开发工程师 & 独立创作者" : "Full-Stack Developer & Indie Creator")}</p>
             <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono mb-6" id="about-location">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" /> {isZh ? "坐标地球 📍" : "Based in Earth 📍"}
+              <MapPin className="w-3.5 h-3.5 text-slate-400" /> {settings?.location || (isZh ? "坐标地球 📍" : "Based in Earth 📍")}
             </div>
 
             {/* Social Link Handles */}
@@ -233,7 +229,7 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
             </p>
           </motion.div>
 
-          {/* Timeline block */}
+          {/* Tech Stack & Writing Focus block */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -243,51 +239,44 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
                 ? "bg-[#fefdfb] border-[#e5e2db] hover:border-indigo-200 hover:shadow-[0_8px_30px_rgba(99,102,241,0.06)]"
                 : "bg-[#0c0d14]/40 border-white/[0.04]"
             }`}
-            id="about-timeline-panel"
+            id="about-focus-panel"
           >
-            <h3 className={`text-base font-bold tracking-widest uppercase mb-6 border-b pb-2 font-mono ${
+            <h3 className={`text-base font-bold tracking-widest uppercase mb-6 border-b pb-2 font-mono flex items-center gap-2 ${
               isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"
             }`}>
-              {isZh ? "我的历程" : "My Journey"}
+              <Lightbulb className="w-4 h-4 text-amber-400" />
+              {isZh ? "技术栈与写作方向" : "Tech Stack & Writing Focus"}
             </h3>
 
-            <div className={`space-y-6 relative border-l pl-5 ml-2 ${isLight ? "border-[#e5e2db]" : "border-white/[0.04]"}`} id="timeline-list">
-              {timeline.map((item, index) => (
-                <div key={item.year} className="relative group">
-                  {/* Outer circle dot line */}
-                  <span className={`absolute -left-[26px] top-1.5 w-3 h-3 rounded-full border-2 transition-all duration-300 ${
-                    isLight 
-                      ? "bg-white border-slate-300 group-hover:border-indigo-500 group-hover:bg-indigo-100"
-                      : "bg-slate-800 border-slate-600 group-hover:border-indigo-400 group-hover:bg-indigo-500/20"
-                  }`} />
-                  
-                  {/* Meta */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                    <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded border w-fit ${
+            <div className="space-y-5" id="focus-areas-list">
+              {focusAreas.map((item) => {
+                const IconMap: Record<string, any> = { code: Code, layers: Layers, design: Pen };
+                const ItemIcon = IconMap[item.icon] || Code;
+                return (
+                  <div
+                    key={item.title}
+                    className={`flex gap-4 p-4 rounded-xl border transition-all group ${
                       isLight
-                        ? "bg-indigo-50 text-indigo-600 border-indigo-100"
-                        : "bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+                        ? "bg-slate-50/60 border-slate-200/50 hover:border-indigo-200 hover:shadow-[0_4px_12px_rgba(99,102,241,0.04)]"
+                        : "bg-white/[0.01] border-white/[0.03] hover:border-white/[0.08] hover:bg-white/[0.02]"
+                    }`}
+                  >
+                    <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isLight ? "bg-indigo-50 text-indigo-500" : "bg-indigo-500/10 text-indigo-400"
                     }`}>
-                      {item.year}
-                    </span>
-                    <h4 className={`text-sm font-mono font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                      {item.company}
-                    </h4>
+                      <ItemIcon className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className={`text-sm font-bold mb-1.5 ${
+                        isLight ? "text-slate-800" : "text-slate-200"
+                      }`}>{item.title}</h4>
+                      <p className={`text-sm leading-relaxed ${
+                        isLight ? "text-slate-600" : "text-slate-400"
+                      }`}>{item.desc}</p>
+                    </div>
                   </div>
-
-                  {/* Title */}
-                  <h3 className={`text-base font-bold transition-colors ${
-                    isLight ? "text-slate-800 group-hover:text-indigo-600" : "text-slate-200 group-hover:text-white"
-                  }`}>
-                    {item.role}
-                  </h3>
-
-                  {/* Desc */}
-                  <p className={`text-sm leading-relaxed mt-2.5 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-                    {item.desc}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </motion.div>
         </div>

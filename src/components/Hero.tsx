@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useState } from "react";
 import { ArrowRight, Laptop, Cloud, PenTool, Wrench, Brain, Globe, Cpu, Terminal, Flame, Sparkles, Rocket, Server, Palette } from "lucide-react";
 import type { Category, Article } from "../data/mockAdminData";
 
@@ -19,6 +20,30 @@ interface HeroProps {
   categories?: Category[];
   articles?: Article[];
   language?: "zh" | "en";
+}
+
+// Hero background image with loading skeleton and fade-in effect
+function HeroBackgroundImage({ src }: { src: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="absolute inset-0 z-0">
+      {/* Skeleton placeholder while loading */}
+      {!loaded && (
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0a0c14] via-[#0e1020] to-[#0a0c14] animate-pulse">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(99,102,241,0.06),transparent_70%)]" />
+        </div>
+      )}
+      <img
+        src={src}
+        alt=""
+        className={`w-full h-full object-cover transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"}`}
+        referrerPolicy="no-referrer"
+        loading="eager"
+        onLoad={() => setLoaded(true)}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
+    </div>
+  );
 }
 
 export default function Hero({ onNavigate, onSelectCategory, glowMode = true, theme = "glow", settings, categories = [], articles = [], language = "zh" }: HeroProps) {
@@ -128,15 +153,7 @@ export default function Hero({ onNavigate, onSelectCategory, glowMode = true, th
 
       {/* Full-bleed background image (covers entire hero when set) */}
       {settings?.homeImage && (
-        <div className="absolute inset-0 z-0">
-          <img 
-            src={settings.homeImage} 
-            alt="" 
-            className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/70" />
-        </div>
+        <HeroBackgroundImage src={settings.homeImage} />  
       )}
 
       {/* Main Content Area */}

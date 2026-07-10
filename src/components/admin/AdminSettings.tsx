@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   User, 
   Settings as SettingsIcon, 
   Github, 
-  Twitter, 
   Mail, 
   Save, 
   Globe, 
@@ -14,21 +13,23 @@ import {
   Sparkles,
   Link2,
   Image as ImageIcon,
-  Upload
+  Upload,
+  MapPin
 } from "lucide-react";
 import { SiteSettings } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
-import { adminApi } from "../../api";
+import { adminApi, api, mapSettings } from "../../api";
 
 interface AdminSettingsProps {
   settings: SiteSettings;
   onUpdateSettings: (updated: SiteSettings) => void;
   authToken?: string | null;
+  onAutoLogout?: () => void;
   language?: "zh" | "en";
   theme?: "dark" | "light";
 }
 
-export default function AdminSettings({ settings, onUpdateSettings, authToken, language = "zh", theme = "dark" }: AdminSettingsProps) {
+export default function AdminSettings({ settings, onUpdateSettings, authToken, onAutoLogout, language = "zh", theme = "dark" }: AdminSettingsProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
   // Form States
@@ -43,8 +44,28 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
   const [homeImage, setHomeImage] = useState(settings.homeImage || "");
 
   const [github, setGithub] = useState(settings.github);
-  const [twitter, setTwitter] = useState(settings.twitter);
   const [mail, setMail] = useState(settings.mail);
+
+  const [location, setLocation] = useState(settings.location || "");
+  const [siteNotice, setSiteNotice] = useState(settings.siteNotice || "");
+  const [siteSloganEn, setSiteSloganEn] = useState(settings.siteSloganEn || "");
+
+  // 当 settings prop 更新时同步表单状态（保存后 API 重新拉取会触发）
+  useEffect(() => {
+    setNickname(settings.nickname);
+    setTitle(settings.title);
+    setAvatarUrl(settings.avatarUrl);
+    setBio(settings.bio);
+    setSiteTitle(settings.siteTitle);
+    setSiteSlogan(settings.siteSlogan);
+    setSiteDescription(settings.siteDescription);
+    setHomeImage(settings.homeImage || "");
+    setGithub(settings.github);
+    setMail(settings.mail);
+    setLocation(settings.location || "");
+    setSiteNotice(settings.siteNotice || "");
+    setSiteSloganEn(settings.siteSloganEn || "");
+  }, [settings]);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -63,9 +84,11 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
       siteSlogan,
       siteDescription,
       github,
-      twitter,
       mail,
       homeImage,
+      location,
+      siteNotice,
+      siteSloganEn,
     };
     // 更新本地状态
     onUpdateSettings(updated);
@@ -75,11 +98,24 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
         await adminApi.updateSettings(authToken, {
           nickname, title, avatarUrl, bio,
           siteTitle, siteSlogan, siteDescription,
-          github, twitter, mail, homeImage,
+          github, mail, homeImage,
+          location, siteNotice, siteSloganEn,
         });
-        showToast(isZh ? "保存成功！" : "Settings saved successfully!");
-      } catch {
-        showToast(isZh ? "保存失败，请重试" : "Save failed, please retry");
+        // 保存成功后重新从 API 拉取最新配置，确保前端同步
+        try {
+          const freshSettings = await api.getSettings();
+          onUpdateSettings(mapSettings(freshSettings));
+        } catch {}
+        showToast(isZh ? "保存成功！已同步到全站" : "Settings saved & synced!");
+      } catch (err: any) {
+        console.error("Settings save error:", err);
+        const msg = err?.message || '';
+        if (msg.includes('401') || msg.includes('未授权')) {
+          showToast(isZh ? "登录已过期，即将返回登录页" : "Session expired, redirecting to login");
+          setTimeout(() => onAutoLogout?.(), 1500);
+        } else {
+          showToast(isZh ? `保存失败：${msg || '请重试'}` : `Save failed: ${msg || 'please retry'}`);
+        }
       }
     } else {
       showToast(isZh ? "已保存（仅本地）" : "Saved (local only)");
@@ -207,6 +243,20 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
                   placeholder="写下关于你的经历和理念..."
                 />
               </div>
+
+              {/* Location */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className={`text-sm font-medium block pl-1 flex items-center gap-1.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                  <MapPin className="w-3.5 h-3.5 text-slate-500" /> {isZh ? "位置/坐标" : "Location"}
+                </label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+                  placeholder={isZh ? "如：坐标地球 📍" : "e.g. Based in Earth 📍"}
+                />
+              </div>
             </div>
           </div>
 
@@ -217,7 +267,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
               <span>{isZh ? "社交矩阵渠道网络" : "Social Channels"}</span>
             </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* GitHub */}
               <div className="space-y-1.5">
                 <label className={`text-sm font-medium block pl-1 flex items-center gap-1.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
@@ -227,21 +277,6 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
                   type="text"
                   value={github}
                   onChange={(e) => setGithub(e.target.value)}
-                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none font-mono focus:border-indigo-500/40 transition-colors ${
-                    isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-black/40 border-white/[0.08] text-slate-100"
-                  }`}
-                />
-              </div>
-
-              {/* Twitter/X */}
-              <div className="space-y-1.5">
-                <label className={`text-sm font-medium block pl-1 flex items-center gap-1.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                  <Twitter className="w-3.5 h-3.5 text-slate-500" /> {isZh ? "Twitter/X 链接" : "Twitter/X URL"}
-                </label>
-                <input
-                  type="text"
-                  value={twitter}
-                  onChange={(e) => setTwitter(e.target.value)}
                   className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none font-mono focus:border-indigo-500/40 transition-colors ${
                     isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-black/40 border-white/[0.08] text-slate-100"
                   }`}
@@ -296,6 +331,30 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, l
                   onChange={(e) => setSiteSlogan(e.target.value)}
                   className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
                   placeholder={isZh ? "探索 · 记录 · 分享" : "Explore · Record · Share"}
+                />
+              </div>
+
+              {/* English Slogan */}
+              <div className="space-y-1.5">
+                <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "英文标语" : "English Slogan"}</label>
+                <input
+                  type="text"
+                  value={siteSloganEn}
+                  onChange={(e) => setSiteSloganEn(e.target.value)}
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+                  placeholder="Minimalist Space Blog"
+                />
+              </div>
+
+              {/* Site Notice/Badge */}
+              <div className="space-y-1.5">
+                <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "首页徽章文本" : "Hero Badge Text"}</label>
+                <input
+                  type="text"
+                  value={siteNotice}
+                  onChange={(e) => setSiteNotice(e.target.value)}
+                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+                  placeholder={isZh ? "探索 · 记录 · 分享" : "EXPLORE · RECORD · SHARE"}
                 />
               </div>
 

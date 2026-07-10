@@ -6,7 +6,6 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./components/admin/AdminDashboard";
 import AdminPosts from "./components/admin/AdminPosts";
 import AdminTags from "./components/admin/AdminTags";
-import AdminComments from "./components/admin/AdminComments";
 import AdminSettings from "./components/admin/AdminSettings";
 import { api } from "./api";
 import { mapArticles, mapCategories, mapSettings } from "./api";
@@ -14,12 +13,10 @@ import { mapArticles, mapCategories, mapSettings } from "./api";
 import { 
   INITIAL_ARTICLES, 
   INITIAL_TAGS, 
-  INITIAL_COMMENTS, 
   INITIAL_SETTINGS,
   INITIAL_CATEGORIES,
   Article,
   Tag,
-  Comment,
   SiteSettings,
   Category
 } from "./data/mockAdminData";
@@ -47,14 +44,28 @@ export default function AdminApp() {
 
   const [adminActiveTab, setAdminActiveTab] = useState<string>("dashboard");
 
+  // 自动登出函数（API 返回 401 时调用）
+  const handleAutoLogout = () => {
+    setAuthToken(null);
+    localStorage.removeItem("nono_admin_token");
+  };
+
   // Data states - 优先从 API 加载
   const [articles, setArticles] = useState<Article[]>(INITIAL_ARTICLES);
   const [tags, setTags] = useState<Tag[]>(INITIAL_TAGS);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
   const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  // 从 API 加载数据
+  // 刷新文章数据（确保浏览量等实时同步）
+  const refreshArticles = async () => {
+    try {
+      const articlesRes = await api.getArticles();
+      if (articlesRes.length) setArticles(mapArticles(articlesRes));
+    } catch {}
+  };
+
+  // API 加载数据
   useEffect(() => {
     let cancelled = false;
     async function loadData() {
@@ -70,32 +81,22 @@ export default function AdminApp() {
         if (tagsRes.length) setTags(tagsRes);
         if (categoriesRes.length) setCategories(mapCategories(categoriesRes));
         setSettings(mapSettings(settingsRes));
-      } catch {
+      } catch (err: any) {
         // API 不可用时回退到 INITIAL 数据
+      } finally {
+        if (!cancelled) setDataLoading(false);
       }
     }
     loadData();
     return () => { cancelled = true; };
   }, []);
 
-  // 加载所有评论（包括待审核）
+  // 切换 tab 时刷新文章数据
   useEffect(() => {
-    if (!authToken) return;
-    fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/admin/comments`, {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length) {
-          setComments(data.map((c: any) => ({
-            id: c.id, author: c.author, avatar: c.avatar || '', email: c.email || '',
-            articleId: c.article_id, articleTitle: c.article_title,
-            content: c.content, date: c.date, status: c.status,
-          })));
-        }
-      })
-      .catch(() => {});
-  }, [authToken]);
+    if (isAdminAuthenticated && !dataLoading) {
+      refreshArticles();
+    }
+  }, [adminActiveTab]);
 
   // Keep theme in cache
   useEffect(() => { localStorage.setItem("nono_theme", theme); }, [theme]);
@@ -125,11 +126,10 @@ export default function AdminApp() {
           <AdminDashboard
             articles={articles}
             tags={tags}
-            comments={comments}
             onWritePost={() => setAdminActiveTab("posts")}
-            onViewComments={() => setAdminActiveTab("comments")}
             language={language}
             theme={theme}
+            authToken={authToken}
           />
         );
       case "posts":
@@ -138,6 +138,7 @@ export default function AdminApp() {
             articles={articles}
             onUpdateArticles={setArticles}
             categories={categories}
+            authToken={authToken}
             language={language}
             theme={theme}
           />
@@ -153,34 +154,13 @@ export default function AdminApp() {
             theme={theme}
           />
         );
-      case "comments":
-        return (
-          <AdminComments
-            comments={comments}
-            onUpdateComments={setComments}
-            onUpdateStatus={async (id, status) => {
-              try {
-                await fetch(`${import.meta.env.VITE_API_URL || 'https://blog-api.187771.xyz'}/api/admin/comments/${id}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authToken}`,
-                  },
-                  body: JSON.stringify({ status }),
-                });
-                setComments(prev => prev.map(c => c.id === id ? { ...c, status: status as any } : c));
-              } catch {}
-            }}
-            language={language}
-            theme={theme}
-          />
-        );
       case "settings":
         return (
           <AdminSettings
             settings={settings}
             onUpdateSettings={setSettings}
             authToken={authToken}
+            onAutoLogout={handleAutoLogout}
             language={language}
             theme={theme}
           />
@@ -190,11 +170,10 @@ export default function AdminApp() {
           <AdminDashboard
             articles={articles}
             tags={tags}
-            comments={comments}
             onWritePost={() => setAdminActiveTab("posts")}
-            onViewComments={() => setAdminActiveTab("comments")}
             language={language}
             theme={theme}
+            authToken={authToken}
           />
         );
     }
@@ -202,22 +181,31 @@ export default function AdminApp() {
 
   return (
     <div className={`min-h-screen text-slate-100 flex flex-col font-sans relative ${isLight ? "bg-[#f5f4f0]" : "bg-[#07080e]"}`} id="admin-root">
-      <AdminLayout
-        activeSubTab={adminActiveTab}
-        setActiveSubTab={setAdminActiveTab}
-        settings={settings}
-        onLogout={() => {
-          setAuthToken(null);
-          localStorage.removeItem("nono_admin_token");
-        }}
-        onExitConsole={() => {
-          window.location.href = "/";
-        }}
-        language={language}
-        theme={theme}
-      >
-        {renderAdminChild()}
-      </AdminLayout>
+      {dataLoading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-400 rounded-full animate-spin" />
+            <span className="text-sm font-mono text-slate-500 tracking-wider">{language === 'zh' ? '加载中...' : 'Loading...'}</span>
+          </div>
+        </div>
+      ) : (
+        <AdminLayout
+          activeSubTab={adminActiveTab}
+          setActiveSubTab={setAdminActiveTab}
+          settings={settings}
+          onLogout={() => {
+            setAuthToken(null);
+            localStorage.removeItem("nono_admin_token");
+          }}
+          onExitConsole={() => {
+            window.location.href = "/";
+          }}
+          language={language}
+          theme={theme}
+        >
+          {renderAdminChild()}
+        </AdminLayout>
+      )}
     </div>
   );
 }
