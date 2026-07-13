@@ -328,42 +328,46 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
 
         {/* Right column: Sticky Navigation TOC (目录) */}
         <div className="hidden lg:block relative col-span-1">
-          <div className={`sticky top-24 rounded-2xl border backdrop-blur-md flex flex-col max-h-[calc(100vh-8rem)] ${
+          <div className={`sticky top-24 rounded-2xl border backdrop-blur-md overflow-hidden ${
             isLight
               ? "bg-[#fefdfb] border-[#e5e2db]/85 shadow-sm"
               : "bg-[#0c0d14]/60 border-white/[0.06]"
           }`}>
-            <h3 className={`text-xs font-bold tracking-widest uppercase px-6 pt-6 pb-2 border-b font-mono shrink-0 ${
+            <h3 className={`text-xs font-bold tracking-widest uppercase px-6 pt-6 pb-2 border-b font-mono ${
               isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"
             }`}>
               {isZh ? "目录" : "Table of Contents"}
             </h3>
             <div
-              className={`flex flex-col gap-2 text-sm px-6 py-4 overflow-y-auto min-h-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}
+              className={`text-sm px-6 py-4 max-h-[calc(100vh-10rem)] overflow-y-auto ${isLight ? "text-slate-600" : "text-slate-400"}`}
               id="detail-toc-links"
               style={{ scrollbarWidth: 'thin' }}
             >
-              {tocList.length > 0 ? tocList.map((section) => (
-                <a
-                  key={section.id + section.level}
-                  href={`#${section.id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const el = document.getElementById(section.id);
-                    if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "start" });
-                      try { history.replaceState(null, '', `#${section.id}`); } catch {}
-                    }
-                  }}
-                  className={`hover:translate-x-1 transition-all leading-relaxed truncate cursor-pointer ${
-                    section.level === 3 ? "pl-3 text-xs" : ""
-                  } ${
-                    isLight ? "hover:text-indigo-600" : "hover:text-white"
-                  }`}
-                >
-                  {section.title}
-                </a>
-              )) : (
+              {tocList.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {tocList.map((section) => (
+                    <a
+                      key={section.id + section.level}
+                      href={`#${section.id}`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const el = document.getElementById(section.id);
+                        if (el) {
+                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                          try { history.replaceState(null, '', `#${section.id}`); } catch {}
+                        }
+                      }}
+                      className={`block hover:translate-x-1 transition-all leading-relaxed truncate cursor-pointer ${
+                        section.level === 3 ? "pl-3 text-xs" : ""
+                      } ${
+                        isLight ? "hover:text-indigo-600" : "hover:text-white"
+                      }`}
+                    >
+                      {section.title}
+                    </a>
+                  ))}
+                </div>
+              ) : (
                 <p className="text-xs italic text-slate-500">{isZh ? "暂无目录" : "No headings"}</p>
               )}
             </div>
