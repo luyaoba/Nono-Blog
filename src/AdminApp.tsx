@@ -143,6 +143,7 @@ export default function AdminApp() {
             articles={articles}
             onUpdateArticles={setArticles}
             categories={categories}
+            tags={tags}
             authToken={authToken}
             language={language}
             theme={theme}

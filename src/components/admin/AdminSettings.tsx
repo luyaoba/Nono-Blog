@@ -67,6 +67,12 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
   const [heroTitleEn, setHeroTitleEn] = useState(settings.heroTitleEn || "");
   const [heroSubtitleEn, setHeroSubtitleEn] = useState(settings.heroSubtitleEn || "");
 
+  // 文章页标题
+  const [articlesTitle, setArticlesTitle] = useState(settings.articlesTitle || "");
+  const [articlesSubtitle, setArticlesSubtitle] = useState(settings.articlesSubtitle || "");
+  const [articlesTitleEn, setArticlesTitleEn] = useState(settings.articlesTitleEn || "");
+  const [articlesSubtitleEn, setArticlesSubtitleEn] = useState(settings.articlesSubtitleEn || "");
+
   // Loading overlay
   const [loadingText, setLoadingText] = useState<string | null>(null);
 
@@ -97,6 +103,10 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
     setHeroSubtitle(settings.heroSubtitle || "");
     setHeroTitleEn(settings.heroTitleEn || "");
     setHeroSubtitleEn(settings.heroSubtitleEn || "");
+    setArticlesTitle(settings.articlesTitle || "");
+    setArticlesSubtitle(settings.articlesSubtitle || "");
+    setArticlesTitleEn(settings.articlesTitleEn || "");
+    setArticlesSubtitleEn(settings.articlesSubtitleEn || "");
   }, [settings]);
 
   const [toast, setToast] = useState<string | null>(null);
@@ -116,6 +126,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
       categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
       tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
       heroTitle, heroSubtitle, heroTitleEn, heroSubtitleEn,
+      articlesTitle, articlesSubtitle, articlesTitleEn, articlesSubtitleEn,
     };
     // 更新本地状态
     onUpdateSettings(updated);
@@ -130,6 +141,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
           categoriesTitle, categoriesSubtitle, categoriesTitleEn, categoriesSubtitleEn,
           tagsTitle, tagsSubtitle, tagsTitleEn, tagsSubtitleEn,
           heroTitle, heroSubtitle, heroTitleEn, heroSubtitleEn,
+          articlesTitle, articlesSubtitle, articlesTitleEn, articlesSubtitleEn,
         });
         // 保存成功后重新从 API 拉取最新配置，确保前端同步
         try {
@@ -534,6 +546,31 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
             <input type="text" value={tagsSubtitleEn} onChange={e => setTagsSubtitleEn(e.target.value)}
               className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
               placeholder="Filter content by tags" />
+          </div>
+          {/* 文章页标题 */}
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "文章页标题" : "Articles Title"}</label>
+            <input type="text" value={articlesTitle} onChange={e => setArticlesTitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="文章" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "文章页标题 (EN)" : "Articles Title (EN)"}</label>
+            <input type="text" value={articlesTitleEn} onChange={e => setArticlesTitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Articles" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "文章页副标题" : "Articles Subtitle"}</label>
+            <input type="text" value={articlesSubtitle} onChange={e => setArticlesSubtitle(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="记录学习与思考的点滴" />
+          </div>
+          <div className="space-y-1.5">
+            <label className={`text-sm font-medium block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "文章页副标题 (EN)" : "Articles Subtitle (EN)"}</label>
+            <input type="text" value={articlesSubtitleEn} onChange={e => setArticlesSubtitleEn(e.target.value)}
+              className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none focus:border-indigo-500/40 ${isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-800" : "bg-black/40 border-white/[0.08] text-slate-100"}`}
+              placeholder="Recording learning and reflections" />
           </div>
         </div>
       </div>

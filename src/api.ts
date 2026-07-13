@@ -172,5 +172,9 @@ export function mapSettings(obj: Record<string, string>): SiteSettings {
     heroSubtitle: obj.heroSubtitle || '',
     heroTitleEn: obj.heroTitleEn || '',
     heroSubtitleEn: obj.heroSubtitleEn || '',
+    articlesTitle: obj.articlesTitle || '',
+    articlesSubtitle: obj.articlesSubtitle || '',
+    articlesTitleEn: obj.articlesTitleEn || '',
+    articlesSubtitleEn: obj.articlesSubtitleEn || '',
   };
 }

@@ -33,6 +33,12 @@ interface ArticlesProps {
   articles?: Article[];
   categories?: Category[];
   language?: "zh" | "en";
+  settings?: {
+    articlesTitle?: string;
+    articlesSubtitle?: string;
+    articlesTitleEn?: string;
+    articlesSubtitleEn?: string;
+  };
 }
 
 export const ARTICLES_DATA: Article[] = [
@@ -98,7 +104,8 @@ export default function Articles({
   theme = "glow", 
   articles = ARTICLES_DATA,
   categories: dynamicCategories = [],
-  language = "zh"
+  language = "zh",
+  settings,
 }: ArticlesProps) {
   const [selectedCategory, setSelectedCategory] = useState(initialFilter);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
@@ -222,14 +229,14 @@ export default function Articles({
       {/* Header section */}
       <div className="mb-12">
         <h1 className={`text-3xl font-extrabold tracking-wider flex items-center gap-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-          {isZh ? "文章" : "Articles"}
+          {isZh ? (settings?.articlesTitle || "文章") : (settings?.articlesTitleEn || "Articles")}
           <span className={`text-sm font-mono font-normal px-3 py-1 rounded border ${
             isLight ? "border-indigo-100 bg-indigo-50/50 text-indigo-600" : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400"
           }`}>
             {filteredArticles.length} {isZh ? "篇" : "posts"}
           </span>
         </h1>
-        <p className={`text-base mt-3 tracking-wide ${isLight ? "text-slate-600" : "text-slate-300"}`}>{isZh ? "记录学习与思考的点滴" : "Recording learning and reflections"}</p>
+        <p className={`text-base mt-3 tracking-wide ${isLight ? "text-slate-600" : "text-slate-300"}`}>{isZh ? (settings?.articlesSubtitle || "记录学习与思考的点滴") : (settings?.articlesSubtitleEn || "Recording learning and reflections")}</p>
       </div>
 
       {/* Filter and Search Bar */}

@@ -215,6 +215,7 @@ export default function App() {
             articles={articles.filter(a => a.status === "published")}
             categories={categories}
             language={language}
+            settings={settings}
           />
         );
       case "categories":
@@ -325,14 +326,14 @@ export default function App() {
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>
               {language === "zh" 
-                ? "所有系统运行正常 // 生产节点在线" 
-                : "ALL SYSTEMS OPERATIONAL // PROD_NODE_LIVE"}
+                ? "服务器还活着，程序员还在掉头发 // BUG_-1 已修复" 
+                : "Server alive, dev losing hair // BUG_-1 fixed"}
             </span>
           </div>
           <div className={`${isLight ? "text-slate-600" : "text-slate-400"}`}>
             {language === "zh"
-              ? "© 2026 Nono | 基于 ❤️ 与 Cloudflare 构建"
-              : "© 2026 Nono | Built with ❤️ and Cloudflare"}
+              ? `© 2026 ${settings?.nickname || "Nono"} | 基于 ❤️ 与 Cloudflare 构建`
+              : `© 2026 ${settings?.nickname || "Nono"} | Built with ❤️ and Cloudflare`}
           </div>
           <div>
             <span className={`hover:text-indigo-500 cursor-pointer ${isLight ? "text-slate-500" : "text-slate-400"}`} onClick={() => handleTabChange("about")}>

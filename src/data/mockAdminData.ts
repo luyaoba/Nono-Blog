@@ -66,7 +66,7 @@ export interface SiteSettings {
   siteSlogan: string;
   siteDescription: string;
   github: string;
-  twitter: string;
+  twitter?: string;
   mail: string;
   homeImage?: string;
   location?: string;
@@ -84,6 +84,10 @@ export interface SiteSettings {
   heroSubtitle?: string;
   heroTitleEn?: string;
   heroSubtitleEn?: string;
+  articlesTitle?: string;
+  articlesSubtitle?: string;
+  articlesTitleEn?: string;
+  articlesSubtitleEn?: string;
 }
 
 // Initial pre-populated data for standard synchronization
@@ -350,6 +354,10 @@ export const INITIAL_SETTINGS: SiteSettings = {
   heroSubtitle: "记录与开发相关的核心技能与技术领域",
   heroTitleEn: "Domains",
   heroSubtitleEn: "Documenting core skills and technical domains",
+  articlesTitle: "文章",
+  articlesSubtitle: "记录学习与思考的点滴",
+  articlesTitleEn: "Articles",
+  articlesSubtitleEn: "Recording learning and reflections",
 };
 
 export const INITIAL_CATEGORIES: Category[] = [

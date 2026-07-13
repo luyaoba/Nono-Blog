@@ -20,7 +20,7 @@ import {
   Upload,
   EyeOff
 } from "lucide-react";
-import { Article, Category } from "../../data/mockAdminData";
+import { Article, Category, Tag } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
 import { adminApi } from "../../api";
 import ConfirmDialog from "./ConfirmDialog";
@@ -91,16 +91,95 @@ function CustomSelect({
   );
 }
 
+// Multi-select tag picker with dropdown
+function TagSelector({ 
+  selected, 
+  onChange, 
+  availableTags, 
+  isLight 
+}: { 
+  selected: string[]; 
+  onChange: (tags: string[]) => void; 
+  availableTags: Tag[]; 
+  isLight?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [inputVal, setInputVal] = useState("");
+  const allTagNames = availableTags.map(t => t.name);
+  const filtered = allTagNames.filter(n => 
+    !selected.includes(n) && n.toLowerCase().includes(inputVal.toLowerCase())
+  );
+
+  const addTag = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed && !selected.includes(trimmed)) {
+      onChange([...selected, trimmed]);
+    }
+    setInputVal("");
+  };
+
+  return (
+    <div className="relative">
+      {/* Selected tags display */}
+      <div 
+        className={`w-full border rounded-xl px-3 py-2 flex flex-wrap gap-1.5 min-h-[42px] cursor-text ${
+          isLight ? "bg-[#f8f7f4] border-[#e5e2db]" : "bg-black/40 border-white/[0.06]"
+        }`}
+        onClick={() => setOpen(true)}
+      >
+        {selected.map(tag => (
+          <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-400 text-xs font-semibold border border-indigo-500/20">
+            {tag}
+            <button type="button" onClick={(e) => { e.stopPropagation(); onChange(selected.filter(t => t !== tag)); }} className="hover:text-rose-400 transition-colors cursor-pointer">×</button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputVal}
+          onChange={e => { setInputVal(e.target.value); setOpen(true); }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(inputVal); } }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 200)}
+          placeholder={selected.length === 0 ? (isLight ? "选择或输入新标签..." : "Select or type new tag...") : ""}
+          className={`flex-grow min-w-[80px] bg-transparent outline-none text-sm border-none p-0 ${
+            isLight ? "text-slate-800 placeholder-slate-400" : "text-slate-200 placeholder-slate-500"
+          }`}
+        />
+      </div>
+      {/* Dropdown */}
+      {open && filtered.length > 0 && (
+        <div className={`absolute left-0 right-0 top-full mt-1 rounded-xl border shadow-2xl overflow-hidden z-50 max-h-40 overflow-y-auto ${
+          isLight ? "bg-[#fefdfb] border-[#e5e2db]" : "bg-[#0e1017] border-white/[0.08]"
+        }`}>
+          {filtered.map(name => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => addTag(name)}
+              className={`w-full text-left px-4 py-2 text-sm transition-colors hover:bg-indigo-600 hover:text-white ${
+                isLight ? "text-slate-700" : "text-slate-300"
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface AdminPostsProps {
   articles: Article[];
   onUpdateArticles: (updated: Article[]) => void;
   categories?: Category[];
+  tags?: Tag[];
   authToken?: string | null;
   language?: "zh" | "en";
   theme?: "dark" | "light";
 }
 
-export default function AdminPosts({ articles, onUpdateArticles, categories = [], authToken, language = "zh", theme = "dark" }: AdminPostsProps) {
+export default function AdminPosts({ articles, onUpdateArticles, categories = [], tags = [], authToken, language = "zh", theme = "dark" }: AdminPostsProps) {
   const isZh = language === "zh";
   const t = translations[language];
   const isLight = theme === "light";
@@ -732,20 +811,13 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                 />
               </div>
 
-              {/* Tags Input (split by space/comma) */}
               <div className="space-y-1.5">
-                <label className={`text-sm font-semibold block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "技术栈标签（逗号隔开）" : "Tags (comma separated)"}</label>
-                <input
-                  type="text"
-                  value={activeArticle?.tags?.join(", ") || ""}
-                  onChange={(e) => {
-                    const tagArr = e.target.value.split(/[,，\s]+/).filter(Boolean);
-                    setActiveArticle({ ...activeArticle, tags: tagArr });
-                  }}
-                  placeholder="Next.js, TS, Cloudflare"
-                  className={`w-full border rounded-xl px-4 py-2.5 text-sm outline-none font-sans focus:border-indigo-500/40 ${
-                    isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-black/40 border-white/[0.06] text-slate-200"
-                  }`}
+                <label className={`text-sm font-semibold block pl-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{isZh ? "技术栈标签" : "Tags"}</label>
+                <TagSelector
+                  selected={activeArticle?.tags || []}
+                  onChange={(newTags) => setActiveArticle({ ...activeArticle, tags: newTags })}
+                  availableTags={tags}
+                  isLight={isLight}
                 />
               </div>
             </div>
