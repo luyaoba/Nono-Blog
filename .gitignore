@@ -13,3 +13,5 @@ Nono-Blog/
 workers/wrangler.toml
 
 workers/.wrangler/
+
+screenshot_*.png
