@@ -193,6 +193,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   const [isEditing, setIsEditing] = useState(false);
   const [activeArticle, setActiveArticle] = useState<Partial<Article> | null>(null);
   const [editMarkdown, setEditMarkdown] = useState("");
+  
+  // Preview state
+  const [previewArticle, setPreviewArticle] = useState<Article | null>(null);
 
   // Map category titles dynamically
   const categoriesList = categories.length > 0
@@ -297,16 +300,16 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     // 生成 TOC markdown
     const minLevel = Math.min(...headings.map(h => h.level));
     const tocLines = headings
-      .filter(h => h.level <= minLevel + 2) // 最多展示3层
+      .filter(h => h.level <= minLevel + 2)
       .map(h => {
         const indent = '  '.repeat(h.level - minLevel);
         const slug = h.text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
         return `${indent}- [${h.text}](#${slug})`;
       });
     const tocBlock = `## ${isZh ? '目录' : 'Table of Contents'}\n\n${tocLines.join('\n')}\n`;
-    // 移除旧 TOC（如果已存在）
+    // 移除旧 TOC
     let content = editMarkdown;
-    const tocRegex = /## (?:目录|Table of Contents)\n\n(?:[-\s[\]#()a-zA-Z0-9\u4e00-\u9fff]*\n)+/;
+    const tocRegex = /## (?:\u76ee\u5f55|Table of Contents)\n\n(?:[^\n]+\n)*/;
     content = content.replace(tocRegex, '');
     // 在第一个标题后插入 TOC
     const firstHeadingEnd = content.search(/\n(?=#{1,6} )/);
@@ -568,9 +571,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           {/* Operations */}
                           <td className="py-4 px-6 text-right">
                             <div className="flex items-center justify-end gap-2.5">
-                              {/* Preview - open article detail */}
+                              {/* Preview - open modal */}
                               <button
-                                onClick={() => window.open(`/article/${art.id}`, '_blank')}
+                                onClick={() => setPreviewArticle(art)}
                                 className="p-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/20 transition-all cursor-pointer"
                                 title={isZh ? "预览文章" : "Preview Article"}
                               >
@@ -961,6 +964,51 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewArticle && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPreviewArticle(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`relative w-full max-w-4xl max-h-[90vh] rounded-2xl border overflow-hidden shadow-2xl ${
+                isLight ? "bg-[#fefdfb] border-[#e5e2db]" : "bg-[#0c0d14] border-white/[0.06]"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className={`sticky top-0 z-10 px-6 py-4 border-b backdrop-blur-md ${
+                isLight ? "bg-[#f8f7f4]/90 border-[#e5e2db]" : "bg-[#0c0d14]/90 border-white/[0.06]"
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className={`text-lg font-bold ${isLight ? "text-slate-800" : "text-slate-100"}`}>{previewArticle.title}</h2>
+                    <p className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{previewArticle.summary}</p>
+                  </div>
+                  <button
+                    onClick={() => setPreviewArticle(null)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      isLight ? "hover:bg-[#e5e2db] text-slate-600" : "hover:bg-white/[0.06] text-slate-400"
+                    }`}
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              
+              {/* Modal Body */}
+              <div className="overflow-y-auto max-h-[calc(90vh-120px)] p-6">
+                <MarkdownRenderer content={previewArticle.content || ""} theme={isLight ? "light" : "dark"} />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      
       <ConfirmDialog
         open={!!deleteTarget}
         title={isZh ? "确认删除文章" : "Confirm Delete"}

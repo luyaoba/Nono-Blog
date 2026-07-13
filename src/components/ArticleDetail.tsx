@@ -116,32 +116,34 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
   })();
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-24 pb-20 relative" id="article-detail-section">
+    <div className="w-full pt-24 pb-20 relative" id="article-detail-section">
       {/* Back to articles */}
-      <button
-        onClick={onBack}
-        className={`group inline-flex items-center gap-2 text-xs font-semibold tracking-wider transition-colors mb-8 cursor-pointer ${
-          isLight ? "text-slate-600 hover:text-indigo-600" : "text-slate-400 hover:text-white"
-        }`}
-        id="detail-back-btn"
-      >
-        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> {isZh ? "返回文章列表" : "Back to Articles"}
-      </button>
+      <div className="max-w-7xl mx-auto px-6">
+        <button
+          onClick={onBack}
+          className={`group inline-flex items-center gap-2 text-xs font-semibold tracking-wider transition-colors mb-8 cursor-pointer ${
+            isLight ? "text-slate-600 hover:text-indigo-600" : "text-slate-400 hover:text-white"
+          }`}
+          id="detail-back-btn"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> {isZh ? "返回文章列表" : "Back to Articles"}
+        </button>
+      </div>
 
-      {/* Hero Banner with Lighthouse illustration matching top right block */}
+      {/* Hero Banner - 全屏宽度 */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className={`w-full h-[280px] md:h-[400px] rounded-2xl overflow-hidden border backdrop-blur-md relative mb-12 ${
-          isLight ? "border-[#e5e2db] bg-[#f0efeb]" : "border-white/[0.04] bg-[#0c0d14]/40"
+        className={`w-full h-[280px] md:h-[400px] overflow-hidden relative mb-12 ${
+          isLight ? "bg-[#f0efeb]" : "bg-[#0c0d14]/40"
         }`}
         id="detail-lighthouse-banner"
       >
-        {/* SVG Beacon Canvas */}
         <svg
-          className="w-full h-full object-cover"
+          className="w-full h-full"
           viewBox="0 0 1200 500"
+          preserveAspectRatio="xMidYMid slice"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -227,16 +229,10 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
             </radialGradient>
           </defs>
         </svg>
-
-        {/* Floating coordinates indicator to matching top right block */}
-        <div className={`absolute top-4 right-6 px-3 py-1 border rounded-md text-xs font-mono backdrop-blur-md ${
-          isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-slate-700" : "bg-black/40 border-white/5 text-slate-400"
-        }`}>
-          PROJECT: CF_SVRLESS_V2
-        </div>
       </motion.div>
 
       {/* Main Core Layout: Split Grid */}
+      <div className="max-w-7xl mx-auto px-6">
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
         {/* Left column: Article detail main content */}
         <div className="lg:col-span-3 text-left">
@@ -251,12 +247,7 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
                 <Calendar className="w-3.5 h-3.5" /> {isZh ? "发布：" : "Published: "}{targetArticle.date}
               </div>
-              {targetArticle.created_at && (
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-                  <Clock className="w-3.5 h-3.5" /> {isZh ? "创建：" : "Created: "}{targetArticle.created_at.replace('T', ' ').slice(0, 16)}
-                </div>
-              )}
-              {targetArticle.updated_at && targetArticle.updated_at !== targetArticle.created_at && (
+              {targetArticle.updated_at && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
                   <RefreshCw className="w-3.5 h-3.5" /> {isZh ? "修改：" : "Updated: "}{targetArticle.updated_at.replace('T', ' ').slice(0, 16)}
                 </div>
@@ -346,21 +337,9 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
                 <p className="text-xs italic text-slate-500">{isZh ? "暂无目录" : "No headings"}</p>
               )}
             </div>
-
-            {/* Author card footer inside TOC column */}
-            <div className={`mt-8 pt-6 border-t flex items-center gap-3 ${isLight ? "border-[#e5e2db]" : "border-white/[0.04]"}`}>
-              <div className={`w-8 h-8 rounded-full border flex items-center justify-center font-mono text-[11px] font-bold ${
-                isLight ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-indigo-500/10 border-indigo-500/30 text-indigo-400"
-              }`}>
-                N
-              </div>
-              <div>
-                <div className={`text-xs font-bold ${isLight ? "text-slate-700" : "text-slate-200"}`}>Written by Nono</div>
-                <div className="text-[11px] font-mono text-slate-400 uppercase">Edge Engineer</div>
-              </div>
-            </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

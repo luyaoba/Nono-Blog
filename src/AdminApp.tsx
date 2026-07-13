@@ -66,6 +66,18 @@ export default function AdminApp() {
     } catch {}
   };
 
+  // 刷新分类和设置数据
+  const refreshSettings = async () => {
+    try {
+      const [categoriesRes, settingsRes] = await Promise.all([
+        api.getCategories(),
+        api.getSettings(),
+      ]);
+      if (categoriesRes.length) setCategories(mapCategories(categoriesRes));
+      setSettings(mapSettings(settingsRes));
+    } catch {}
+  };
+
   // API 加载数据
   useEffect(() => {
     let cancelled = false;
@@ -96,10 +108,11 @@ export default function AdminApp() {
     return () => { cancelled = true; };
   }, []);
 
-  // 切换 tab 时刷新文章数据
+  // 切换 tab 时刷新文章数据 + 分类/设置
   useEffect(() => {
     if (isAdminAuthenticated && !dataLoading) {
       refreshArticles();
+      refreshSettings();
     }
   }, [adminActiveTab]);
 

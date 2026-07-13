@@ -251,7 +251,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const body = await request.json() as any;
     const id = body.id || `article-${Date.now()}`;
     await env.DB.prepare('INSERT INTO articles (id, title, summary, content, date, category, read_time, gradient, thumbnail_type, status, cover_image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(id, body.title, body.summary, body.content || '', body.date, body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '', new Date().toISOString(), new Date().toISOString()).run();
+      .bind(id, body.title, body.summary, body.content || '', body.date || new Date().toISOString(), body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '', new Date().toISOString(), new Date().toISOString()).run();
     // 处理标签关联
     if (body.tags?.length) {
       for (const tagName of body.tags) {
