@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check, RefreshCw } from "lucide-react";
 import { Article } from "../data/mockAdminData";
 import Giscus from "./Giscus";
-import MarkdownRenderer from "./MarkdownRenderer";
+import MarkdownRenderer, { slugify } from "./MarkdownRenderer";
 
 interface ArticleDetailProps {
   articleId: string;
@@ -26,6 +26,24 @@ export default function ArticleDetail({ articleId, onBack, glowMode = true, them
   const isLight = theme === "light";
   const actualGlow = theme === "glow";
   const isZh = language === "zh";
+
+  // 将 ISO/UTC 时间转为本地时间（yyyy-MM-dd HH:mm）
+  const formatLocalTime = (raw?: string | null) => {
+    if (!raw) return '';
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // 判断两个时间戳是否表示同一时刻（用于隐藏修改时间）
+  const isSameMoment = (a?: string | null, b?: string | null) => {
+    if (!a || !b) return false;
+    const da = new Date(a).getTime();
+    const db = new Date(b).getTime();
+    if (isNaN(da) || isNaN(db)) return a === b;
+    return Math.abs(da - db) < 60_000; // 1 分钟内视为同一时刻
+  };
 
   // Find the actual article in the reactive state database
   const targetArticle = articles.find((a) => a.id === articleId) || articles[0];
@@ -107,7 +125,7 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
         const text = match[2].trim();
         // 跳过“目录”本身
         if (/^(目录|Table of Contents)$/i.test(text)) continue;
-        const id = text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
+        const id = slugify(text);
         headings.push({ id, title: text, level });
       }
     }
@@ -245,11 +263,11 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
                 {targetArticle.category}
               </span>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-                <Calendar className="w-3.5 h-3.5" /> {isZh ? "发布：" : "Published: "}{targetArticle.date}
+                <Calendar className="w-3.5 h-3.5" /> {isZh ? "发布：" : "Published: "}{formatLocalTime(targetArticle.date)}
               </div>
-              {targetArticle.updated_at && (
+              {targetArticle.updated_at && !isSameMoment(targetArticle.created_at, targetArticle.updated_at) && (
                 <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-                  <RefreshCw className="w-3.5 h-3.5" /> {isZh ? "修改：" : "Updated: "}{targetArticle.updated_at.replace('T', ' ').slice(0, 16)}
+                  <RefreshCw className="w-3.5 h-3.5" /> {isZh ? "修改：" : "Updated: "}{formatLocalTime(targetArticle.updated_at)}
                 </div>
               )}
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
@@ -306,26 +324,34 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
 
         {/* Right column: Sticky Navigation TOC (目录) */}
         <div className="hidden lg:block relative col-span-1">
-          <div className={`sticky top-24 p-6 rounded-2xl border backdrop-blur-md ${
+          <div className={`sticky top-24 rounded-2xl border backdrop-blur-md flex flex-col max-h-[calc(100vh-8rem)] ${
             isLight
               ? "bg-[#fefdfb] border-[#e5e2db]/85 shadow-sm"
               : "bg-[#0c0d14]/60 border-white/[0.06]"
           }`}>
-            <h3 className={`text-xs font-bold tracking-widest uppercase mb-4 pb-2 border-b font-mono ${
+            <h3 className={`text-xs font-bold tracking-widest uppercase px-6 pt-6 pb-2 border-b font-mono shrink-0 ${
               isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"
             }`}>
               {isZh ? "目录" : "Table of Contents"}
             </h3>
-            <div className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`} id="detail-toc-links">
+            <div
+              className={`flex flex-col gap-2 text-sm px-6 py-4 overflow-y-auto ${isLight ? "text-slate-600" : "text-slate-400"}`}
+              id="detail-toc-links"
+              style={{ scrollbarWidth: 'thin' }}
+            >
               {tocList.length > 0 ? tocList.map((section) => (
                 <a
                   key={section.id + section.level}
                   href={`#${section.id}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    const el = document.getElementById(section.id);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                      try { history.replaceState(null, '', `#${section.id}`); } catch {}
+                    }
                   }}
-                  className={`hover:translate-x-1 transition-all leading-relaxed truncate ${
+                  className={`hover:translate-x-1 transition-all leading-relaxed truncate cursor-pointer ${
                     section.level === 3 ? "pl-3 text-xs" : ""
                   } ${
                     isLight ? "hover:text-indigo-600" : "hover:text-white"

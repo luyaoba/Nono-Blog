@@ -279,8 +279,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const status = body.status !== undefined ? body.status : existing.status;
     const coverImage = body.coverImage !== undefined ? body.coverImage : (existing.cover_image || '');
     const date = body.date !== undefined ? body.date : existing.date;
-    await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, date=?, updated_at=datetime("now") WHERE id=?')
-      .bind(title, summary, content || '', category, readTime, gradient, thumbnailType, status, coverImage, date, id).run();
+    await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, date=?, updated_at=? WHERE id=?')
+      .bind(title, summary, content || '', category, readTime, gradient, thumbnailType, status, coverImage, date, new Date().toISOString(), id).run();
     // 更新标签关联（仅当传入 tags 时）
     if (body.tags !== undefined && Array.isArray(body.tags)) {
       await env.DB.prepare('DELETE FROM article_tags WHERE article_id = ?').bind(id).run();

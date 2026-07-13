@@ -18,8 +18,8 @@ function extractText(children: React.ReactNode): string {
   return '';
 }
 
-// 将文本转为 URL 安全的 slug ID
-function slugify(text: string): string {
+// 将文本转为 URL 安全的 slug ID（支持中文）
+export function slugify(text: string): string {
   return text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
 }
 
@@ -79,7 +79,7 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
           h1: ({ children }) => {
             const text = extractText(children);
             return (
-              <h1 id={slugify(text)} className={`text-xl md:text-2xl font-extrabold pt-6 pb-2 border-b ${isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"}`}>
+              <h1 id={slugify(text)} className={`text-xl md:text-2xl font-extrabold pt-6 pb-2 border-b scroll-mt-24 ${isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"}`}>
                 {children}
               </h1>
             );
@@ -87,7 +87,7 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
           h2: ({ children }) => {
             const text = extractText(children);
             return (
-              <h2 id={slugify(text)} className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+              <h2 id={slugify(text)} className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 scroll-mt-24 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
                 <span className="w-1.5 h-6 rounded bg-indigo-500" />
                 {children}
               </h2>
@@ -96,7 +96,7 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
           h3: ({ children }) => {
             const text = extractText(children);
             return (
-              <h3 id={slugify(text)} className={`text-base md:text-lg font-semibold pt-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+              <h3 id={slugify(text)} className={`text-base md:text-lg font-semibold pt-3 scroll-mt-24 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
                 {children}
               </h3>
             );
@@ -137,11 +137,33 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
               {children}
             </blockquote>
           ),
-          a: ({ href, children }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            // 页面内锚点链接：平滑滚动，不开新窗口
+            if (href && href.startsWith('#')) {
+              return (
+                <a
+                  href={href}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const id = href.slice(1);
+                    const el = document.getElementById(decodeURIComponent(id));
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      try { history.replaceState(null, '', href); } catch {}
+                    }
+                  }}
+                  className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 cursor-pointer"
+                >
+                  {children}
+                </a>
+              );
+            }
+            return (
+              <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+                {children}
+              </a>
+            );
+          },
           strong: ({ children }) => (
             <strong className={isLight ? "text-slate-800 font-bold" : "text-slate-100 font-bold"}>{children}</strong>
           ),
