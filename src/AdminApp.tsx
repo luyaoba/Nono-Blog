@@ -106,6 +106,19 @@ export default function AdminApp() {
   // Keep theme in cache
   useEffect(() => { localStorage.setItem("nono_theme", theme); }, [theme]);
 
+  // 动态 favicon：使用头像
+  useEffect(() => {
+    if (settings.avatarUrl) {
+      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "icon";
+        document.head.appendChild(link);
+      }
+      link.href = settings.avatarUrl;
+    }
+  }, [settings.avatarUrl]);
+
   // Not authenticated: show login screen
   if (!isAdminAuthenticated) {
     return (

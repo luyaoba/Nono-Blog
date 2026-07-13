@@ -19,6 +19,29 @@ interface AboutProps {
     twitter?: string;
     mail?: string;
     location?: string;
+    aboutStatsValue1?: string;
+    aboutStatsLabel1?: string;
+    aboutStatsLabel1En?: string;
+    aboutStatsValue2?: string;
+    aboutStatsLabel2?: string;
+    aboutStatsLabel2En?: string;
+    aboutStatsValue3?: string;
+    aboutStatsLabel3?: string;
+    aboutStatsLabel3En?: string;
+    aboutFocusTitle?: string;
+    aboutFocusTitleEn?: string;
+    aboutFocus1Title?: string;
+    aboutFocus1TitleEn?: string;
+    aboutFocus1Desc?: string;
+    aboutFocus1DescEn?: string;
+    aboutFocus2Title?: string;
+    aboutFocus2TitleEn?: string;
+    aboutFocus2Desc?: string;
+    aboutFocus2DescEn?: string;
+    aboutFocus3Title?: string;
+    aboutFocus3TitleEn?: string;
+    aboutFocus3Desc?: string;
+    aboutFocus3DescEn?: string;
   };
 }
 
@@ -29,42 +52,35 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
   const t = translations[language];
 
   const stats = [
-    { value: "8+", label: isZh ? "原创文章" : "Original Articles" },
-    { value: "16", label: isZh ? "技术标签" : "Tech Tags" },
-    { value: "✓", label: isZh ? "持续更新中" : "Actively Updating" },
+    {
+      value: settings?.aboutStatsValue1 || "8+",
+      label: isZh ? (settings?.aboutStatsLabel1 || "原创文章") : (settings?.aboutStatsLabel1En || "Original Articles"),
+    },
+    {
+      value: settings?.aboutStatsValue2 || "16",
+      label: isZh ? (settings?.aboutStatsLabel2 || "技术标签") : (settings?.aboutStatsLabel2En || "Tech Tags"),
+    },
+    {
+      value: settings?.aboutStatsValue3 || "✓",
+      label: isZh ? (settings?.aboutStatsLabel3 || "持续更新中") : (settings?.aboutStatsLabel3En || "Actively Updating"),
+    },
   ];
 
-  const focusAreas = isZh ? [
+  const focusAreas = [
     {
       icon: "code",
-      title: "前端工程与性能优化",
-      desc: "React / Next.js / TypeScript 全栈实践，追求极致的首屏渲染速度与流畅交互体验。",
+      title: isZh ? (settings?.aboutFocus1Title || "前端工程与性能优化") : (settings?.aboutFocus1TitleEn || "Frontend Engineering & Performance"),
+      desc: isZh ? (settings?.aboutFocus1Desc || "React / Next.js / TypeScript 全栈实践，追求极致的首屏渲染速度与流畅交互体验。") : (settings?.aboutFocus1DescEn || "React / Next.js / TypeScript full-stack practice, pursuing ultimate first-paint speed and smooth interactions."),
     },
     {
       icon: "layers",
-      title: "Cloudflare 全栈部署",
-      desc: "Workers + D1 + R2 架构，Serverless 优先，零运维、全球边缘加速。",
+      title: isZh ? (settings?.aboutFocus2Title || "Cloudflare 全栈部署") : (settings?.aboutFocus2TitleEn || "Cloudflare Full-Stack Deployment"),
+      desc: isZh ? (settings?.aboutFocus2Desc || "Workers + D1 + R2 架构，Serverless 优先，零运维、全球边缘加速。") : (settings?.aboutFocus2DescEn || "Workers + D1 + R2 architecture, Serverless-first, zero-ops global edge acceleration."),
     },
     {
       icon: "design",
-      title: "设计美学与交互细节",
-      desc: "太空极简风、像素级还原、微动效缓动曲线，相信好的产品源自对细节的偏执。",
-    },
-  ] : [
-    {
-      icon: "code",
-      title: "Frontend Engineering & Performance",
-      desc: "React / Next.js / TypeScript full-stack practice, pursuing ultimate first-paint speed and smooth interactions.",
-    },
-    {
-      icon: "layers",
-      title: "Cloudflare Full-Stack Deployment",
-      desc: "Workers + D1 + R2 architecture, Serverless-first, zero-ops global edge acceleration.",
-    },
-    {
-      icon: "design",
-      title: "Design Aesthetics & Micro-interactions",
-      desc: "Space-minimalist style, pixel-perfect implementation, subtle easing curves — great products come from obsessive detail.",
+      title: isZh ? (settings?.aboutFocus3Title || "设计美学与交互细节") : (settings?.aboutFocus3TitleEn || "Design Aesthetics & Micro-interactions"),
+      desc: isZh ? (settings?.aboutFocus3Desc || "太空极简风、像素级还原、微动效缓动曲线，相信好的产品源自对细节的偏执。") : (settings?.aboutFocus3DescEn || "Space-minimalist style, pixel-perfect implementation, subtle easing curves — great products come from obsessive detail."),
     },
   ];
 
@@ -245,7 +261,7 @@ export default function About({ glowMode = true, theme = "glow", language = "zh"
               isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"
             }`}>
               <Lightbulb className="w-4 h-4 text-amber-400" />
-              {isZh ? "技术栈与写作方向" : "Tech Stack & Writing Focus"}
+              {isZh ? (settings?.aboutFocusTitle || "技术栈与写作方向") : (settings?.aboutFocusTitleEn || "Tech Stack & Writing Focus")}
             </h3>
 
             <div className="space-y-5" id="focus-areas-list">

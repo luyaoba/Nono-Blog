@@ -89,14 +89,18 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // 页面重新可见时刷新文章列表（后台修改文章状态后前端能及时更新）
+  // 刷新文章列表（从 API 重新拉取）
+  const refreshArticles = async () => {
+    try {
+      const articlesRes = await api.getArticles();
+      if (articlesRes.length) setArticles(mapArticles(articlesRes));
+    } catch { /* API 不可用时静默忽略 */ }
+  };
+
+  // 页面重新可见时刷新文章列表（从后台标签页切回来）
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState !== 'visible') return;
-      try {
-        const articlesRes = await api.getArticles();
-        if (articlesRes.length) setArticles(mapArticles(articlesRes));
-      } catch { /* API 不可用时静默忽略 */ }
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refreshArticles();
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -150,6 +154,8 @@ export default function App() {
     setArticlesFilter("全部");
     setArticlesSearch("");
     window.scrollTo({ top: 0, behavior: "instant" });
+    // 每次导航到文章页时刷新
+    if (tabId === 'articles') refreshArticles();
   };
 
   // Quick navigation helpers from Hero categories or Tag clicks
@@ -160,6 +166,7 @@ export default function App() {
     setIsSearchActive(false);
     setSelectedArticleId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    refreshArticles();
   };
 
   const handleSelectTag = (tagName: string) => {
@@ -169,6 +176,7 @@ export default function App() {
     setArticlesFilter("全部");
     setArticlesSearch(tagName);
     window.scrollTo({ top: 0, behavior: "smooth" });
+    refreshArticles();
   };
 
   const handleArticleClick = (articleId: string) => {
@@ -204,7 +212,7 @@ export default function App() {
       return (
         <ArticleDetail
           articleId={selectedArticleId}
-          onBack={() => setSelectedArticleId(null)}
+          onBack={() => { setSelectedArticleId(null); refreshArticles(); }}
           glowMode={glowMode}
           theme={theme}
           articles={articles}

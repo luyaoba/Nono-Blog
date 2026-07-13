@@ -90,6 +90,31 @@ export interface SiteSettings {
   articlesSubtitle?: string;
   articlesTitleEn?: string;
   articlesSubtitleEn?: string;
+  // 关于页 - 统计卡片
+  aboutStatsValue1?: string;
+  aboutStatsLabel1?: string;
+  aboutStatsLabel1En?: string;
+  aboutStatsValue2?: string;
+  aboutStatsLabel2?: string;
+  aboutStatsLabel2En?: string;
+  aboutStatsValue3?: string;
+  aboutStatsLabel3?: string;
+  aboutStatsLabel3En?: string;
+  // 关于页 - 技术栈与写作方向
+  aboutFocusTitle?: string;
+  aboutFocusTitleEn?: string;
+  aboutFocus1Title?: string;
+  aboutFocus1TitleEn?: string;
+  aboutFocus1Desc?: string;
+  aboutFocus1DescEn?: string;
+  aboutFocus2Title?: string;
+  aboutFocus2TitleEn?: string;
+  aboutFocus2Desc?: string;
+  aboutFocus2DescEn?: string;
+  aboutFocus3Title?: string;
+  aboutFocus3TitleEn?: string;
+  aboutFocus3Desc?: string;
+  aboutFocus3DescEn?: string;
 }
 
 // Initial pre-populated data for standard synchronization
@@ -360,6 +385,31 @@ export const INITIAL_SETTINGS: SiteSettings = {
   articlesSubtitle: "记录学习与思考的点滴",
   articlesTitleEn: "Articles",
   articlesSubtitleEn: "Recording learning and reflections",
+  // 关于页 - 统计卡片
+  aboutStatsValue1: "8+",
+  aboutStatsLabel1: "原创文章",
+  aboutStatsLabel1En: "Original Articles",
+  aboutStatsValue2: "16",
+  aboutStatsLabel2: "技术标签",
+  aboutStatsLabel2En: "Tech Tags",
+  aboutStatsValue3: "✓",
+  aboutStatsLabel3: "持续更新中",
+  aboutStatsLabel3En: "Actively Updating",
+  // 关于页 - 技术栈与写作方向
+  aboutFocusTitle: "技术栈与写作方向",
+  aboutFocusTitleEn: "Tech Stack & Writing Focus",
+  aboutFocus1Title: "前端工程与性能优化",
+  aboutFocus1TitleEn: "Frontend Engineering & Performance",
+  aboutFocus1Desc: "React / Next.js / TypeScript 全栈实践，追求极致的首屏渲染速度与流畅交互体验。",
+  aboutFocus1DescEn: "React / Next.js / TypeScript full-stack practice, pursuing ultimate first-paint speed and smooth interactions.",
+  aboutFocus2Title: "Cloudflare 全栈部署",
+  aboutFocus2TitleEn: "Cloudflare Full-Stack Deployment",
+  aboutFocus2Desc: "Workers + D1 + R2 架构，Serverless 优先，零运维、全球边缘加速。",
+  aboutFocus2DescEn: "Workers + D1 + R2 architecture, Serverless-first, zero-ops global edge acceleration.",
+  aboutFocus3Title: "设计美学与交互细节",
+  aboutFocus3TitleEn: "Design Aesthetics & Micro-interactions",
+  aboutFocus3Desc: "太空极简风、像素级还原、微动效缓动曲线，相信好的产品源自对细节的偏执。",
+  aboutFocus3DescEn: "Space-minimalist style, pixel-perfect implementation, subtle easing curves — great products come from obsessive detail.",
 };
 
 export const INITIAL_CATEGORIES: Category[] = [
