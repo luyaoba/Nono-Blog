@@ -339,7 +339,7 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
               {isZh ? "目录" : "Table of Contents"}
             </h3>
             <div
-              className={`flex flex-col gap-2 text-sm px-6 py-4 overflow-y-auto ${isLight ? "text-slate-600" : "text-slate-400"}`}
+              className={`flex flex-col gap-2 text-sm px-6 py-4 overflow-y-auto min-h-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}
               id="detail-toc-links"
               style={{ scrollbarWidth: 'thin' }}
             >

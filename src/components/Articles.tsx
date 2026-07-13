@@ -239,45 +239,43 @@ export default function Articles({
         <p className={`text-base mt-3 tracking-wide ${isLight ? "text-slate-600" : "text-slate-300"}`}>{isZh ? (settings?.articlesSubtitle || "记录学习与思考的点滴") : (settings?.articlesSubtitleEn || "Recording learning and reflections")}</p>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className={`flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 border-b pb-6 ${
+      {/* Filter and Search Bar - 分类标签与搜索同行融合 */}
+      <div className={`flex flex-wrap items-center gap-2.5 mb-10 border-b pb-6 ${
         isLight ? "border-[#e5e2db]" : "border-white/[0.06]"
       }`}>
         {/* Tags filters */}
-        <div className="flex flex-wrap items-center gap-2.5 pb-3 lg:pb-0" id="articles-tabs">
-          {finalCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                selectedCategory === cat
-                  ? isLight
-                    ? "bg-indigo-600 text-white font-bold shadow-[0_4px_12px_rgba(99,102,241,0.25)]"
-                    : "bg-white text-[#07080c] font-bold shadow-[0_0_12px_rgba(255,255,255,0.1)]"
-                  : isLight
-                  ? "bg-[#f8f7f4] border border-[#e5e2db] text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/30"
-                  : "bg-white/[0.02] border border-white/[0.04] text-slate-400 hover:text-slate-200 hover:border-white/[0.1] hover:bg-white/[0.04]"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        {finalCategories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-5 py-2 rounded-full text-sm font-semibold tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+              selectedCategory === cat
+                ? isLight
+                  ? "bg-indigo-600 text-white font-bold shadow-[0_4px_12px_rgba(99,102,241,0.25)]"
+                  : "bg-white text-[#07080c] font-bold shadow-[0_0_12px_rgba(255,255,255,0.1)]"
+                : isLight
+                ? "bg-[#f8f7f4] border border-[#e5e2db] text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/30"
+                : "bg-white/[0.02] border border-white/[0.04] text-slate-400 hover:text-slate-200 hover:border-white/[0.1] hover:bg-white/[0.04]"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
 
-        {/* Dynamic Inner Search Box */}
-        <div className="relative w-full lg:max-w-xs" id="articles-search-container">
+        {/* Search Box - 自动流到标签末尾，与分类形成同一筛选栏 */}
+        <div className="relative min-w-[200px] sm:min-w-[260px] flex-1 max-w-xs ml-auto" id="articles-search-container">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
             <Search className="w-4 h-4 text-indigo-400/80" />
           </div>
           <input
             type="text"
-            placeholder={isZh ? "搜索文章标题、简介..." : "Search articles..."}
+            placeholder={isZh ? "搜索标题/简介/标签..." : "Search title/summary/tag..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className={`w-full border rounded-xl pl-9 pr-4 py-2.5 text-sm tracking-wider outline-none transition-all ${
+            className={`w-full border rounded-full pl-9 pr-4 py-2 text-sm tracking-wider outline-none transition-all ${
               isLight
                 ? "bg-[#fefdfb] border-[#e5e2db] text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20"
-                : "border-white/[0.05] bg-[#0a0b12]/60 text-slate-200 placeholder-slate-500 focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20"
+                : "border-white/[0.08] bg-[#0a0b12]/60 text-slate-200 placeholder-slate-500 focus:border-indigo-500/40 focus:ring-1 focus:ring-indigo-500/20"
             }`}
             id="articles-search-input"
           />

@@ -66,7 +66,7 @@ function CustomSelect({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className={`origin-top-right absolute right-0 mt-1.5 w-full rounded-xl shadow-2xl border backdrop-blur-3xl focus:outline-none z-50 overflow-hidden animate-in fade-in slide-in-from-top-1.5 duration-200 ${
-            isLight ? "bg-[#fefdfb] border-[#e5e2db]" : "bg-[#0e1017] border-white/[0.08]"
+            isLight ? "bg-white border-[#d6d3cc] shadow-lg" : "bg-[#1a1d2e] border-indigo-500/30 shadow-[0_10px_40px_rgba(99,102,241,0.15)]"
           }`}>
             <div className="py-1 max-h-64 overflow-y-auto scrollbar-thin">
               {options.map((opt) => (
@@ -78,7 +78,7 @@ function CustomSelect({
                     setOpen(false);
                   }}
                   className={`block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-indigo-600 hover:text-white ${
-                    isLight ? "text-slate-700" : "text-slate-200"
+                    isLight ? "text-slate-800 font-medium" : "text-slate-100"
                   } ${
                     value === opt ? "bg-indigo-500/20 text-indigo-400 font-bold" : ""
                   }`}
@@ -309,7 +309,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     const tocBlock = `## ${isZh ? '目录' : 'Table of Contents'}\n\n${tocLines.join('\n')}\n`;
     // 移除旧 TOC
     let content = editMarkdown;
-    const tocRegex = /## (?:\u76ee\u5f55|Table of Contents)\n\n(?:[^\n]+\n)*/;
+    const tocRegex = /## (?:\u76ee\u5f55|Table of Contents)\n\n(?:[^\n]+\n)*/;;
     content = content.replace(tocRegex, '');
     // 在第一个标题后插入 TOC
     const firstHeadingEnd = content.search(/\n(?=#{1,6} )/);
@@ -574,10 +574,10 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                               {/* Preview - open modal */}
                               <button
                                 onClick={() => setPreviewArticle(art)}
-                                className="p-1.5 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/20 transition-all cursor-pointer"
+                                className="p-2 rounded-lg bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border border-slate-400/30 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "预览文章" : "Preview Article"}
                               >
-                                <Eye className="w-3.5 h-3.5" />
+                                <Eye className="w-4 h-4" />
                               </button>
 
                               {/* Unpublish/Publish toggle */}
@@ -589,32 +589,32 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                                     setPublishTarget(art.id);
                                   }
                                 }}
-                                className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                                className={`p-2 rounded-lg border transition-all cursor-pointer hover:scale-105 ${
                                   art.status === "published" 
-                                    ? "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20" 
-                                    : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20"
+                                    ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-400/40" 
+                                    : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/40"
                                 }`}
                                 title={art.status === "published" ? (isZh ? "下线文章" : "Unpublish") : (isZh ? "发布文章" : "Publish")}
                               >
-                                {art.status === "published" ? <EyeOff className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                {art.status === "published" ? <EyeOff className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
                               </button>
 
                               {/* Edit */}
                               <button
                                 onClick={() => handleEdit(art)}
-                                className="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition-all cursor-pointer"
+                                className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "编辑文章" : "Edit Article"}
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
+                                <Edit3 className="w-4 h-4" />
                               </button>
 
                               {/* Delete */}
                               <button
                                 onClick={() => handleDelete(art.id)}
-                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-all cursor-pointer"
+                                className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "删除文章" : "Delete Article"}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
