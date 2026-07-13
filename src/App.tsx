@@ -89,6 +89,19 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
+  // 页面重新可见时刷新文章列表（后台修改文章状态后前端能及时更新）
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const articlesRes = await api.getArticles();
+        if (articlesRes.length) setArticles(mapArticles(articlesRes));
+      } catch { /* API 不可用时静默忽略 */ }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
   // Dynamic page title from settings
   useEffect(() => {
     if (settings.siteTitle) {

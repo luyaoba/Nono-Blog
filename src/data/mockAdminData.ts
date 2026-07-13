@@ -14,6 +14,8 @@ export interface Article {
   thumbnailType: "mesh" | "starfield" | "aurora" | "vortex";
   status: "published" | "draft";
   coverImage?: string; // Custom uploaded article cover image
+  created_at?: string; // 数据库创建时间
+  updated_at?: string; // 数据库最后修改时间
 }
 
 export interface Project {

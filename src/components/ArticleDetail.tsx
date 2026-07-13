@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Tag, Share2, Heart, Copy, Check, RefreshCw } from "lucide-react";
 import { Article } from "../data/mockAdminData";
 import Giscus from "./Giscus";
 import MarkdownRenderer from "./MarkdownRenderer";
@@ -237,8 +237,18 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
                 {targetArticle.category}
               </span>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
-                <Calendar className="w-3.5 h-3.5" /> {targetArticle.date}
+                <Calendar className="w-3.5 h-3.5" /> {isZh ? "发布：" : "Published: "}{targetArticle.date}
               </div>
+              {targetArticle.created_at && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+                  <Clock className="w-3.5 h-3.5" /> {isZh ? "创建：" : "Created: "}{targetArticle.created_at.replace('T', ' ').slice(0, 16)}
+                </div>
+              )}
+              {targetArticle.updated_at && targetArticle.updated_at !== targetArticle.created_at && (
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
+                  <RefreshCw className="w-3.5 h-3.5" /> {isZh ? "修改：" : "Updated: "}{targetArticle.updated_at.replace('T', ' ').slice(0, 16)}
+                </div>
+              )}
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-mono">
                 <Clock className="w-3.5 h-3.5" /> {targetArticle.readTime || (isZh ? "5分钟阅读" : "5 min read")}
               </div>

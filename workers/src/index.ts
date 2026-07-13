@@ -250,8 +250,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (path === '/api/admin/articles' && method === 'POST') {
     const body = await request.json() as any;
     const id = body.id || `article-${Date.now()}`;
-    await env.DB.prepare('INSERT INTO articles (id, title, summary, content, date, category, read_time, gradient, thumbnail_type, status, cover_image) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(id, body.title, body.summary, body.content || '', body.date, body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '').run();
+    await env.DB.prepare('INSERT INTO articles (id, title, summary, content, date, category, read_time, gradient, thumbnail_type, status, cover_image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(id, body.title, body.summary, body.content || '', body.date, body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '', new Date().toISOString(), new Date().toISOString()).run();
     // 处理标签关联
     if (body.tags?.length) {
       for (const tagName of body.tags) {
@@ -371,6 +371,10 @@ async function handleImage(request: Request, env: Env): Promise<Response> {
 // ===== 入口 =====
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // 安全迁移：确保 articles 表有 created_at / updated_at 字段
+    try { await env.DB.prepare('ALTER TABLE articles ADD COLUMN created_at TEXT').run(); } catch {}
+    try { await env.DB.prepare('ALTER TABLE articles ADD COLUMN updated_at TEXT').run(); } catch {}
+
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/images/')) {
       return handleImage(request, env);

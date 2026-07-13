@@ -134,7 +134,7 @@ export function mapArticles(rows: any[]): Article[] {
     readTime: r.read_time || '', views: r.views || 0, likes: r.likes || 0, comments: r.comments_count || 0,
     gradient: r.gradient || '', thumbnailType: r.thumbnail_type || 'starfield',
     status: r.status || 'published', coverImage: r.cover_image || '',
-    updated_at: r.updated_at || '',
+    created_at: r.created_at || '', updated_at: r.updated_at || '',
   }));
 }
 export function mapProjects(rows: any[]): Project[] {
