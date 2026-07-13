@@ -135,17 +135,21 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
 
   return (
     <div className="w-full pt-24 pb-20 relative" id="article-detail-section">
-      {/* Back to articles */}
-      <div className="max-w-7xl mx-auto px-6">
-        <button
-          onClick={onBack}
-          className={`group inline-flex items-center gap-2 text-xs font-semibold tracking-wider transition-colors mb-8 cursor-pointer ${
-            isLight ? "text-slate-600 hover:text-indigo-600" : "text-slate-400 hover:text-white"
-          }`}
-          id="detail-back-btn"
-        >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> {isZh ? "返回文章列表" : "Back to Articles"}
-        </button>
+      {/* 返回按钮：固定定位，滚动时始终可见 */}
+      <div className="fixed top-20 left-0 right-0 z-30 pointer-events-none px-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={onBack}
+            className={`group pointer-events-auto inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold tracking-wider transition-all cursor-pointer backdrop-blur-md border shadow-sm ${
+              isLight
+                ? "bg-white/80 border-[#e5e2db] text-slate-600 hover:text-indigo-600 hover:border-indigo-200"
+                : "bg-[#0c0d14]/70 border-white/[0.08] text-slate-400 hover:text-white hover:border-white/[0.2]"
+            }`}
+            id="detail-back-btn"
+          >
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> {isZh ? "返回文章列表" : "Back to Articles"}
+          </button>
+        </div>
       </div>
 
       {/* Hero Banner - 全屏宽度 */}

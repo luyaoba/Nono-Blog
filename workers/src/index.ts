@@ -93,7 +93,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // ===== 公开 API =====
   // 获取文章列表
   if (path === '/api/articles' && method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM articles WHERE status = ? ORDER BY date DESC').bind('published').all();
+    const { results } = await env.DB.prepare('SELECT * FROM articles WHERE status = ? ORDER BY created_at DESC, date DESC').bind('published').all();
     const articles = results || [];
     // 附加标签
     for (const article of articles as any[]) {
@@ -216,7 +216,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   // 管理员获取所有文章（含所有状态）
   if (path === '/api/admin/articles' && method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM articles ORDER BY date DESC').all();
+    const { results } = await env.DB.prepare('SELECT * FROM articles ORDER BY created_at DESC, date DESC').all();
     const articles = results || [];
     for (const article of articles as any[]) {
       const tags = await env.DB.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').bind(article.id).all();
