@@ -18,11 +18,14 @@ import {
   FolderOpen,
   Image as ImageIcon,
   Upload,
-  EyeOff
+  EyeOff,
+  Wand2,
+  ListTree
 } from "lucide-react";
 import { Article, Category, Tag } from "../../data/mockAdminData";
 import { translations } from "../../data/translations";
 import { adminApi } from "../../api";
+import MarkdownRenderer from "../MarkdownRenderer";
 import ConfirmDialog from "./ConfirmDialog";
 import LoadingOverlay from "./LoadingOverlay";
 
@@ -258,6 +261,61 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
       console.error('图片上传失败');
     }
     setLoadingText(null);
+  };
+
+  // Markdown 格式化：统一排版（标题空行、代码块间距、图片间距、清理多余空行）
+  const formatMarkdown = () => {
+    let md = editMarkdown;
+    md = md.replace(/\r\n/g, '\n');
+    md = md.replace(/([^\n])\n(#{1,6} )/g, '$1\n\n$2');
+    md = md.replace(/(#{1,6} .+)\n([^\n#])/g, '$1\n\n$2');
+    md = md.replace(/([^\n])\n(```)/g, '$1\n\n$2');
+    md = md.replace(/(```)\n([^\n`])/g, '$1\n\n$2');
+    md = md.replace(/([^\n])\n(!\[)/g, '$1\n\n$2');
+    md = md.replace(/(\]\([^)]+\))\n([^\n!])/g, '$1\n\n$2');
+    md = md.replace(/([^\n])\n(---)/g, '$1\n\n$2');
+    md = md.replace(/(---)\n([^\n-])/g, '$1\n\n$2');
+    md = md.replace(/\n{4,}/g, '\n\n\n');
+    md = md.trimEnd() + '\n';
+    setEditMarkdown(md);
+  };
+
+  // 自动生成大纲并插入文章顶部
+  const generateTOC = () => {
+    const lines = editMarkdown.split('\n');
+    const headings: { level: number; text: string }[] = [];
+    let inCodeBlock = false;
+    for (const line of lines) {
+      if (line.trim().startsWith('```')) { inCodeBlock = !inCodeBlock; continue; }
+      if (inCodeBlock) continue;
+      const match = line.match(/^(#{1,6})\s+(.+)/);
+      if (match) {
+        headings.push({ level: match[1].length, text: match[2].trim() });
+      }
+    }
+    if (headings.length === 0) return;
+    // 生成 TOC markdown
+    const minLevel = Math.min(...headings.map(h => h.level));
+    const tocLines = headings
+      .filter(h => h.level <= minLevel + 2) // 最多展示3层
+      .map(h => {
+        const indent = '  '.repeat(h.level - minLevel);
+        const slug = h.text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
+        return `${indent}- [${h.text}](#${slug})`;
+      });
+    const tocBlock = `## ${isZh ? '目录' : 'Table of Contents'}\n\n${tocLines.join('\n')}\n`;
+    // 移除旧 TOC（如果已存在）
+    let content = editMarkdown;
+    const tocRegex = /## (?:目录|Table of Contents)\n\n(?:[-\s[\]#()a-zA-Z0-9\u4e00-\u9fff]*\n)+/;
+    content = content.replace(tocRegex, '');
+    // 在第一个标题后插入 TOC
+    const firstHeadingEnd = content.search(/\n(?=#{1,6} )/);
+    if (firstHeadingEnd > 0) {
+      content = content.slice(0, firstHeadingEnd + 1) + '\n' + tocBlock + '\n' + content.slice(firstHeadingEnd + 1);
+    } else {
+      content = tocBlock + '\n' + content;
+    }
+    setEditMarkdown(content.trimEnd() + '\n');
   };
 
   // Unpublish confirmation
@@ -828,7 +886,32 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
               <div className={`flex flex-col rounded-2xl overflow-hidden ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#07080e]/90 border border-white/[0.08]"}`}>
                 <div className={`px-4 py-2.5 text-xs font-mono text-slate-400 flex items-center justify-between ${isLight ? "bg-[#f8f7f4] border-b border-[#e5e2db]" : "bg-white/[0.02] border-b border-white/[0.08]"}`}>
                   <span>{isZh ? "源码编辑器" : "Source Editor"}</span>
-                  <span>UTF-8</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={formatMarkdown}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                        isLight ? "hover:bg-indigo-50 text-slate-500 hover:text-indigo-600" : "hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-300"
+                      }`}
+                      title={isZh ? "美化格式" : "Format"}
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>{isZh ? "格式化" : "Format"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={generateTOC}
+                      className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                        isLight ? "hover:bg-indigo-50 text-slate-500 hover:text-indigo-600" : "hover:bg-indigo-500/10 text-slate-400 hover:text-indigo-300"
+                      }`}
+                      title={isZh ? "生成大纲" : "Generate TOC"}
+                    >
+                      <ListTree className="w-3.5 h-3.5" />
+                      <span>{isZh ? "大纲" : "TOC"}</span>
+                    </button>
+                    <span className={isLight ? "text-slate-300" : "text-slate-600"}>|</span>
+                    <span>UTF-8</span>
+                  </div>
                 </div>
                 <textarea
                   value={editMarkdown}
@@ -869,61 +952,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                   </div>
                 </div>
 
-                {/* Simulated Markdown renderer */}
-                <div className={`w-full flex-grow p-5 overflow-y-auto text-sm font-sans prose leading-relaxed max-w-none ${
-                  isLight ? "text-slate-700" : "text-slate-300 prose-invert"
-                }`}>
-                  {editMarkdown ? (
-                    <div className="space-y-4">
-                      {editMarkdown.split("\n\n").map((block, idx) => {
-                        const trimmed = block.trim();
-                        if (trimmed.startsWith("# ")) {
-                          return <h1 key={idx} className={`text-xl font-bold border-b pb-2 mt-2 ${isLight ? "text-slate-800 border-[#e5e2db]" : "text-white border-white/10"}`}>{trimmed.slice(2)}</h1>;
-                        }
-                        if (trimmed.startsWith("## ")) {
-                          return <h2 key={idx} className={`text-base font-bold border-l-2 border-indigo-500 pl-2 mt-4 ${isLight ? "text-slate-700" : "text-slate-100"}`}>{trimmed.slice(3)}</h2>;
-                        }
-                        if (trimmed.startsWith("### ")) {
-                          return <h3 key={idx} className={`text-sm font-semibold mt-3 ${isLight ? "text-slate-700" : "text-slate-200"}`}>{trimmed.slice(4)}</h3>;
-                        }
-                        if (trimmed.startsWith("* ") || trimmed.startsWith("- ")) {
-                          return (
-                            <ul key={idx} className="list-disc pl-4 space-y-1">
-                              {trimmed.split("\n").map((li, lIdx) => (
-                                <li key={lIdx}>{li.replace(/^[\s*-]+/, "")}</li>
-                              ))}
-                            </ul>
-                          );
-                        }
-                        if (trimmed.startsWith("```")) {
-                          const lines = trimmed.split("\n");
-                          const code = lines.slice(1, lines.length - 1).join("\n");
-                          return (
-                            <pre key={idx} className={`border p-3 rounded-lg font-mono text-xs overflow-x-auto my-3 leading-snug ${
-                              isLight ? "bg-[#f8f7f4] border-[#e5e2db] text-indigo-600" : "bg-black/60 border-white/5 text-indigo-300"
-                            }`}>
-                              <code>{code}</code>
-                            </pre>
-                          );
-                        }
-                        // 图片 ![alt](url)
-                        const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-                        if (imgMatch) {
-                          return (
-                            <div key={idx} className="my-3">
-                              <img src={imgMatch[2]} alt={imgMatch[1]} className="max-w-full rounded-lg border border-white/10 max-h-64 object-contain" />
-                              {imgMatch[1] && <p className="text-xs text-slate-500 mt-1 text-center">{imgMatch[1]}</p>}
-                            </div>
-                          );
-                        }
-                        return <p key={idx} className="leading-6">{trimmed}</p>;
-                      })}
-                    </div>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-slate-600 font-mono text-xs">
-                      {isZh ? "等待输入源渲染预览..." : "Waiting for input..."}
-                    </div>
-                  )}
+                {/* Real Markdown Renderer */}
+                <div className="w-full flex-grow p-5 overflow-y-auto">
+                  <MarkdownRenderer content={editMarkdown} theme={isLight ? "light" : "dark"} />
                 </div>
               </div>
             </div>

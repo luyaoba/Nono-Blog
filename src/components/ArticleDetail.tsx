@@ -93,15 +93,27 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
     setTimeout(() => setShareCopied(false), 2000);
   };
 
-  // Generate dynamic table of contents based on actual sections or standard items
-  const tocList = [
-    { id: "intro", title: "1. 为什么选择 Cloudflare?" },
-    { id: "deploy", title: "2. 极速 Cloudflare Pages 部署" },
-    { id: "workers", title: "3. Serverless Workers 路由" },
-    { id: "database", title: "4. D1 关系型数据库整合" },
-    { id: "custom-domain", title: "5. 自定义域名与 SSL 锁" },
-    { id: "summary", title: "6. 结语与成本复盘" },
-  ];
+  // Generate dynamic table of contents from article content
+  const tocList = (() => {
+    const content = targetArticle?.content || '';
+    const headings: { id: string; title: string; level: number }[] = [];
+    let inCodeBlock = false;
+    for (const line of content.split('\n')) {
+      if (line.trim().startsWith('```')) { inCodeBlock = !inCodeBlock; continue; }
+      if (inCodeBlock) continue;
+      const match = line.match(/^(#{1,6})\s+(.+)/);
+      if (match) {
+        const level = match[1].length;
+        const text = match[2].trim();
+        // 跳过“目录”本身
+        if (/^(目录|Table of Contents)$/i.test(text)) continue;
+        const id = text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
+        headings.push({ id, title: text, level });
+      }
+    }
+    // 只展示 h2/h3
+    return headings.filter(h => h.level >= 2 && h.level <= 3);
+  })();
 
   return (
     <div className="max-w-7xl mx-auto px-6 pt-24 pb-20 relative" id="article-detail-section">
@@ -313,22 +325,26 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
             }`}>
               {isZh ? "目录" : "Table of Contents"}
             </h3>
-            <div className={`flex flex-col gap-3.5 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`} id="detail-toc-links">
-              {tocList.map((section) => (
+            <div className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`} id="detail-toc-links">
+              {tocList.length > 0 ? tocList.map((section) => (
                 <a
-                  key={section.id}
+                  key={section.id + section.level}
                   href={`#${section.id}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth" });
+                    document.getElementById(section.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
                   }}
-                  className={`hover:translate-x-1 transition-all leading-relaxed ${
+                  className={`hover:translate-x-1 transition-all leading-relaxed truncate ${
+                    section.level === 3 ? "pl-3 text-xs" : ""
+                  } ${
                     isLight ? "hover:text-indigo-600" : "hover:text-white"
                   }`}
                 >
                   {section.title}
                 </a>
-              ))}
+              )) : (
+                <p className="text-xs italic text-slate-500">{isZh ? "暂无目录" : "No headings"}</p>
+              )}
             </div>
 
             {/* Author card footer inside TOC column */}

@@ -9,6 +9,20 @@ interface MarkdownRendererProps {
   theme?: "glow" | "dark" | "light";
 }
 
+// 从 React children 中提取纯文本
+function extractText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (typeof children === 'number') return String(children);
+  if (Array.isArray(children)) return children.map(extractText).join('');
+  if (children && typeof children === 'object' && 'props' in children) return extractText(children.props.children);
+  return '';
+}
+
+// 将文本转为 URL 安全的 slug ID
+function slugify(text: string): string {
+  return text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
+}
+
 // 代码块组件（带复制按钮）
 function CodeBlock({ className, children, isLight }: { className?: string; children: React.ReactNode; isLight: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -62,17 +76,31 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          h2: ({ children, id }) => (
-            <h2 id={id} className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              <span className="w-1.5 h-6 rounded bg-indigo-500" />
-              {children}
-            </h2>
-          ),
-          h3: ({ children, id }) => (
-            <h3 id={id} className={`text-base md:text-lg font-semibold pt-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
-              {children}
-            </h3>
-          ),
+          h1: ({ children }) => {
+            const text = extractText(children);
+            return (
+              <h1 id={slugify(text)} className={`text-xl md:text-2xl font-extrabold pt-6 pb-2 border-b ${isLight ? "text-slate-800 border-[#e5e2db]" : "text-slate-100 border-white/[0.06]"}`}>
+                {children}
+              </h1>
+            );
+          },
+          h2: ({ children }) => {
+            const text = extractText(children);
+            return (
+              <h2 id={slugify(text)} className={`text-lg md:text-xl font-bold pt-4 flex items-center gap-2 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+                <span className="w-1.5 h-6 rounded bg-indigo-500" />
+                {children}
+              </h2>
+            );
+          },
+          h3: ({ children }) => {
+            const text = extractText(children);
+            return (
+              <h3 id={slugify(text)} className={`text-base md:text-lg font-semibold pt-3 ${isLight ? "text-slate-800" : "text-slate-100"}`}>
+                {children}
+              </h3>
+            );
+          },
           p: ({ children }) => <p className="my-3">{children}</p>,
           ul: ({ children }) => (
             <ul className={`list-disc list-inside space-y-1 pl-4 my-3 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
