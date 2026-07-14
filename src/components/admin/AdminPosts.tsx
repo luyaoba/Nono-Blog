@@ -272,6 +272,28 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   // Global loading overlay
   const [loadingText, setLoadingText] = useState<string | null>(null);
 
+  // Markdown image upload helper (drag/paste)
+  const [dragOver, setDragOver] = useState(false);
+  const uploadAndInsertImage = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert(isZh ? '\u56fe\u7247\u5927\u5c0f\u4e0d\u80fd\u8d85\u8fc7 5MB' : 'Image size must be under 5MB');
+      return;
+    }
+    setLoadingText(isZh ? "\u4e0a\u4f20\u56fe\u7247\u4e2d..." : "Uploading image...");
+    try {
+      if (authToken) {
+        const res = await adminApi.uploadImage(authToken, file);
+        if (res.url) {
+          const imgMd = `![${file.name}](${res.url})`;
+          setEditMarkdown(prev => prev + '\n' + imgMd + '\n');
+        }
+      }
+    } catch {
+      console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25');
+    }
+    setLoadingText(null);
+  };
   // Markdown \u683c\u5f0f\u5316\uff1a\u7edf\u4e00\u6392\u7248\uff08\u6807\u9898\u7a7a\u884c\u3001\u4ee3\u7801\u5757\u95f4\u8ddd\u3001\u56fe\u7247\u95f4\u8ddd\u3001\u6e05\u7406\u591a\u4f59\u7a7a\u884c\uff09
   const formatMarkdown = () => {
     let md = editMarkdown;
@@ -479,13 +501,13 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
               <div>
                 <table className="w-full table-fixed text-left border-collapse" id="articles-list-table">
                   <colgroup>
-                    <col style={{ width: "32%" }} />
-                    <col style={{ width: "11%" }} />
-                    <col style={{ width: "15%" }} />
+                    <col style={{ width: "34%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "12%" }} />
                     <col style={{ width: "8%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "10%" }} />
-                    <col style={{ width: "14%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "16%" }} />
                   </colgroup>
                   <thead>
                     <tr className={`text-sm font-mono tracking-wider uppercase ${isLight ? "border-b border-[#e5e2db] text-slate-600 bg-[#f8f7f4]" : "border-b border-white/[0.08] text-slate-400 bg-[#05060a]/40"}`}>
@@ -580,16 +602,23 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
                           {/* Modified time */}
                           <td className={`py-4 px-6 font-mono text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                            {(art as any).updated_at || '—'}
+                            {(() => {
+              const raw = (art as any).updated_at;
+              if (!raw) return '\u2014';
+              const d = new Date(raw);
+              if (isNaN(d.getTime())) return raw;
+              const p = (n: number) => String(n).padStart(2, '0');
+              return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+            })()}
                           </td>
 
                           {/* Operations */}
                           <td className="py-4 px-6 text-right">
-                            <div className="flex items-center justify-end gap-2.5">
+                            <div className="flex items-center justify-end gap-1.5">
                               {/* Preview - open modal */}
                               <button
                                 onClick={() => setPreviewArticle(art)}
-                                className="p-2 rounded-lg bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border border-slate-400/30 transition-all cursor-pointer hover:scale-105"
+                                className="p-1.5 rounded-lg bg-slate-500/20 hover:bg-slate-500/30 text-slate-200 border border-slate-400/30 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "预览文章" : "Preview Article"}
                               >
                                 <Eye className="w-4 h-4" />
@@ -604,7 +633,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                                     setPublishTarget(art.id);
                                   }
                                 }}
-                                className={`p-2 rounded-lg border transition-all cursor-pointer hover:scale-105 ${
+                                className={`p-1.5 rounded-lg border transition-all cursor-pointer hover:scale-105 ${
                                   art.status === "published" 
                                     ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-400/40" 
                                     : "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-400/40"
@@ -617,7 +646,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                               {/* Edit */}
                               <button
                                 onClick={() => handleEdit(art)}
-                                className="p-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 transition-all cursor-pointer hover:scale-105"
+                                className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "编辑文章" : "Edit Article"}
                               >
                                 <Edit3 className="w-4 h-4" />
@@ -626,7 +655,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                               {/* Delete */}
                               <button
                                 onClick={() => handleDelete(art.id)}
-                                className="p-2 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 transition-all cursor-pointer hover:scale-105"
+                                className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-400/40 transition-all cursor-pointer hover:scale-105"
                                 title={isZh ? "删除文章" : "Delete Article"}
                               >
                                 <Trash2 className="w-4 h-4" />
