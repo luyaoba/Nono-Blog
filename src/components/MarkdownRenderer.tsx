@@ -113,7 +113,9 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
             </ol>
           ),
           code: ({ className, children, ...props }) => {
-            const isBlock = className?.includes("hljs");
+            // Detect block code: has hljs class (language specified) OR contains newlines (no language)
+            const rawText = String(children).replace(/\n$/, '');
+            const isBlock = className?.includes("hljs") || rawText.includes('\n');
             if (isBlock) {
               return (
                 <CodeBlock className={className} isLight={isLight}>
