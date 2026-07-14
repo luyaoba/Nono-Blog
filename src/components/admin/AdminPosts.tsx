@@ -281,45 +281,58 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   const cursorPosRef = useRef<number>(0);
 
   useEffect(() => {
-    // Wait a tick for refs to attach after render
-    const timer = setTimeout(() => {
-      const left = leftRef.current;
-      const right = rightRef.current;
-      if (!left || !right) return;
-      const onLeftScroll = () => {
+    if (!isEditing) return;
+    let left: HTMLTextAreaElement | null = null;
+    let right: HTMLDivElement | null = null;
+    let onLeftScroll: (() => void) | null = null;
+    let onRightScroll: (() => void) | null = null;
+    let attached = false;
+
+    const tryAttach = () => {
+      if (attached) return true;
+      left = leftRef.current;
+      right = rightRef.current;
+      if (!left || !right) return false;
+      attached = true;
+
+      onLeftScroll = () => {
         if (isSyncingScroll.current) return;
-        const max = left.scrollHeight - left.clientHeight;
+        const max = left!.scrollHeight - left!.clientHeight;
         if (max <= 0) return;
-        const ratio = left.scrollTop / max;
-        const rMax = right.scrollHeight - right.clientHeight;
+        const ratio = left!.scrollTop / max;
+        const rMax = right!.scrollHeight - right!.clientHeight;
         if (rMax <= 0) return;
         isSyncingScroll.current = true;
-        right.scrollTop = ratio * rMax;
-        setTimeout(() => { isSyncingScroll.current = false; }, 50);
+        right!.scrollTop = ratio * rMax;
+        setTimeout(() => { isSyncingScroll.current = false; }, 60);
       };
-      const onRightScroll = () => {
+      onRightScroll = () => {
         if (isSyncingScroll.current) return;
-        const max = right.scrollHeight - right.clientHeight;
+        const max = right!.scrollHeight - right!.clientHeight;
         if (max <= 0) return;
-        const ratio = right.scrollTop / max;
-        const lMax = left.scrollHeight - left.clientHeight;
+        const ratio = right!.scrollTop / max;
+        const lMax = left!.scrollHeight - left!.clientHeight;
         if (lMax <= 0) return;
         isSyncingScroll.current = true;
-        left.scrollTop = ratio * lMax;
-        setTimeout(() => { isSyncingScroll.current = false; }, 50);
+        left!.scrollTop = ratio * lMax;
+        setTimeout(() => { isSyncingScroll.current = false; }, 60);
       };
+
       left.addEventListener("scroll", onLeftScroll, { passive: true });
       right.addEventListener("scroll", onRightScroll, { passive: true });
-      // Store cleanup fn on element for effect cleanup
-      (left as any).__scrollCleanup = () => left.removeEventListener("scroll", onLeftScroll);
-      (right as any).__scrollCleanup = () => right.removeEventListener("scroll", onRightScroll);
-    }, 100);
+      return true;
+    };
+
+    // Poll for ref readiness (AnimatePresence delays DOM insertion)
+    const poll = setInterval(() => { tryAttach(); }, 200);
+    tryAttach();
+    const giveUp = setTimeout(() => clearInterval(poll), 3000);
+
     return () => {
-      clearTimeout(timer);
-      const left = leftRef.current;
-      const right = rightRef.current;
-      if (left && (left as any).__scrollCleanup) (left as any).__scrollCleanup();
-      if (right && (right as any).__scrollCleanup) (right as any).__scrollCleanup();
+      clearInterval(poll);
+      clearTimeout(giveUp);
+      if (left && onLeftScroll) left.removeEventListener("scroll", onLeftScroll);
+      if (right && onRightScroll) right.removeEventListener("scroll", onRightScroll);
     };
   }, [isEditing]);
   const uploadAndInsertImage = async (file: File) => {
