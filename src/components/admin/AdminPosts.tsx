@@ -278,38 +278,50 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   const leftRef = useRef<HTMLTextAreaElement | null>(null);
   const rightRef = useRef<HTMLDivElement | null>(null);
   const isSyncingScroll = useRef(false);
+  const cursorPosRef = useRef<number>(0);
 
   useEffect(() => {
-    const left = leftRef.current;
-    const right = rightRef.current;
-    if (!left || !right) return;
-    const onLeftScroll = () => {
-      if (isSyncingScroll.current) return;
-      const max = left.scrollHeight - left.clientHeight;
-      if (max <= 0) return;
-      const ratio = left.scrollTop / max;
-      const rMax = right.scrollHeight - right.clientHeight;
-      isSyncingScroll.current = true;
-      right.scrollTop = ratio * rMax;
-      requestAnimationFrame(() => { isSyncingScroll.current = false; });
-    };
-    const onRightScroll = () => {
-      if (isSyncingScroll.current) return;
-      const max = right.scrollHeight - right.clientHeight;
-      if (max <= 0) return;
-      const ratio = right.scrollTop / max;
-      const lMax = left.scrollHeight - left.clientHeight;
-      isSyncingScroll.current = true;
-      left.scrollTop = ratio * lMax;
-      requestAnimationFrame(() => { isSyncingScroll.current = false; });
-    };
-    left.addEventListener("scroll", onLeftScroll, { passive: true });
-    right.addEventListener("scroll", onRightScroll, { passive: true });
+    // Wait a tick for refs to attach after render
+    const timer = setTimeout(() => {
+      const left = leftRef.current;
+      const right = rightRef.current;
+      if (!left || !right) return;
+      const onLeftScroll = () => {
+        if (isSyncingScroll.current) return;
+        const max = left.scrollHeight - left.clientHeight;
+        if (max <= 0) return;
+        const ratio = left.scrollTop / max;
+        const rMax = right.scrollHeight - right.clientHeight;
+        if (rMax <= 0) return;
+        isSyncingScroll.current = true;
+        right.scrollTop = ratio * rMax;
+        setTimeout(() => { isSyncingScroll.current = false; }, 50);
+      };
+      const onRightScroll = () => {
+        if (isSyncingScroll.current) return;
+        const max = right.scrollHeight - right.clientHeight;
+        if (max <= 0) return;
+        const ratio = right.scrollTop / max;
+        const lMax = left.scrollHeight - left.clientHeight;
+        if (lMax <= 0) return;
+        isSyncingScroll.current = true;
+        left.scrollTop = ratio * lMax;
+        setTimeout(() => { isSyncingScroll.current = false; }, 50);
+      };
+      left.addEventListener("scroll", onLeftScroll, { passive: true });
+      right.addEventListener("scroll", onRightScroll, { passive: true });
+      // Store cleanup fn on element for effect cleanup
+      (left as any).__scrollCleanup = () => left.removeEventListener("scroll", onLeftScroll);
+      (right as any).__scrollCleanup = () => right.removeEventListener("scroll", onRightScroll);
+    }, 100);
     return () => {
-      left.removeEventListener("scroll", onLeftScroll);
-      right.removeEventListener("scroll", onRightScroll);
+      clearTimeout(timer);
+      const left = leftRef.current;
+      const right = rightRef.current;
+      if (left && (left as any).__scrollCleanup) (left as any).__scrollCleanup();
+      if (right && (right as any).__scrollCleanup) (right as any).__scrollCleanup();
     };
-  }, [isEditing, editMarkdown]);
+  }, [isEditing]);
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -322,7 +334,13 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         const res = await adminApi.uploadImage(authToken, file);
         if (res.url) {
           const imgMd = `![${file.name}](${res.url})`;
-          setEditMarkdown(prev => prev + '\n' + imgMd + '\n');
+          setEditMarkdown(prev => {
+            const pos = cursorPosRef.current;
+            const before = prev.slice(0, pos);
+            const after = prev.slice(pos);
+            const insert = (before.endsWith('\n') || before === '') ? imgMd : '\n' + imgMd;
+            return before + insert + '\n' + after;
+          });
         }
       }
     } catch (err) {
@@ -1000,7 +1018,8 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                 <textarea
                   ref={leftRef}
                   value={editMarkdown}
-                  onChange={(e) => setEditMarkdown(e.target.value)}
+                  onChange={(e) => { setEditMarkdown(e.target.value); cursorPosRef.current = e.target.selectionStart; }}
+                  onSelect={(e) => { cursorPosRef.current = (e.target as HTMLTextAreaElement).selectionStart; }}
                   onPaste={(e) => {
                     const items = e.clipboardData?.items;
                     if (!items) return;
