@@ -274,6 +274,42 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
   // Markdown image upload helper (drag/paste)
   const [dragOver, setDragOver] = useState(false);
+  // Scroll sync: keep left textarea and right preview scrolling together
+  const leftRef = useRef<HTMLTextAreaElement | null>(null);
+  const rightRef = useRef<HTMLDivElement | null>(null);
+  const isSyncingScroll = useRef(false);
+
+  useEffect(() => {
+    const left = leftRef.current;
+    const right = rightRef.current;
+    if (!left || !right) return;
+    const onLeftScroll = () => {
+      if (isSyncingScroll.current) return;
+      const max = left.scrollHeight - left.clientHeight;
+      if (max <= 0) return;
+      const ratio = left.scrollTop / max;
+      const rMax = right.scrollHeight - right.clientHeight;
+      isSyncingScroll.current = true;
+      right.scrollTop = ratio * rMax;
+      requestAnimationFrame(() => { isSyncingScroll.current = false; });
+    };
+    const onRightScroll = () => {
+      if (isSyncingScroll.current) return;
+      const max = right.scrollHeight - right.clientHeight;
+      if (max <= 0) return;
+      const ratio = right.scrollTop / max;
+      const lMax = left.scrollHeight - left.clientHeight;
+      isSyncingScroll.current = true;
+      left.scrollTop = ratio * lMax;
+      requestAnimationFrame(() => { isSyncingScroll.current = false; });
+    };
+    left.addEventListener("scroll", onLeftScroll, { passive: true });
+    right.addEventListener("scroll", onRightScroll, { passive: true });
+    return () => {
+      left.removeEventListener("scroll", onLeftScroll);
+      right.removeEventListener("scroll", onRightScroll);
+    };
+  }, [isEditing, editMarkdown]);
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -289,8 +325,9 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
           setEditMarkdown(prev => prev + '\n' + imgMd + '\n');
         }
       }
-    } catch {
-      console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25');
+    } catch (err) {
+      console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25', err);
+      alert(isZh ? '\u56fe\u7247\u4e0a\u4f20\u5931\u8d25\uff0c\u8bf7\u67e5\u770b\u63a7\u5236\u53f0' : 'Image upload failed');
     }
     setLoadingText(null);
   };
@@ -961,6 +998,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                   </div>
                 </div>
                 <textarea
+                  ref={leftRef}
                   value={editMarkdown}
                   onChange={(e) => setEditMarkdown(e.target.value)}
                   onPaste={(e) => {
@@ -970,7 +1008,17 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                       if (item.type.startsWith('image/')) {
                         e.preventDefault();
                         const file = item.getAsFile();
-                        if (file) uploadAndInsertImage(file);
+                        if (!file) return;
+                        if (!authToken) {
+                          console.warn('[paste] authToken 为空，请先登录');
+                          alert(isZh ? '请先登录后台再粘贴图片' : 'Please log in first');
+                          return;
+                        }
+                        uploadAndInsertImage(file).catch((err) => {
+                          console.error('[paste] upload failed:', err);
+                          setLoadingText(null);
+                          alert(isZh ? '图片上传失败，请查看控制台' : 'Image upload failed');
+                        });
                       }
                     }
                   }}
@@ -1000,7 +1048,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                 </div>
 
                 {/* Real Markdown Renderer */}
-                <div className="w-full flex-grow p-5 overflow-y-auto">
+                <div ref={rightRef} className="w-full flex-grow p-5 overflow-y-auto">
                   <MarkdownRenderer content={editMarkdown} theme={isLight ? "light" : "dark"} />
                 </div>
               </div>

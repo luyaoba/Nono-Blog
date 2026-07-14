@@ -436,6 +436,26 @@ export default function Hero({ onNavigate, onSelectCategory, glowMode = true, th
           </div>
         </div>
       </div>
+
+      {/* Bottom gradient transition: fade Hero background into Tags section below */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-24 left-0 right-0 h-48 z-[1]"
+        style={{
+          background: isLight
+            ? "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 60%, rgba(255,255,255,1) 100%)"
+            : "linear-gradient(to bottom, rgba(7,8,12,0) 0%, rgba(7,8,12,0.6) 60%, rgba(7,8,12,1) 100%)",
+        }}
+      />
+
+      {/* Subtle meteor streaks for space-minimal ambience */}
+      {!isLight && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden z-[2]">
+          <span className="meteor meteor-7"  style={{ top: '8%',  left: '20%' }} />
+          <span className="meteor meteor-9"  style={{ top: '15%', left: '55%' }} />
+          <span className="meteor meteor-11" style={{ top: '5%',  left: '78%' }} />
+        </div>
+      )}
     </div>
   );
 }
