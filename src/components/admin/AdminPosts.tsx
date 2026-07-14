@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Plus, 
@@ -40,14 +41,68 @@ function CustomSelect({
   value: string; 
   onChange: (val: string) => void; 
   options: string[]; 
-  placeholder?: string;
+  placeholder?: string; 
   isLight?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  // Compute menu position relative to viewport so it can be rendered at body level
+  // This avoids being clipped by any overflow-hidden ancestor.
+  useEffect(() => {
+    if (!open || !btnRef.current) {
+      setMenuPos(null);
+      return;
+    }
+    const updatePos = () => {
+      if (!btnRef.current) return;
+      const r = btnRef.current.getBoundingClientRect();
+      setMenuPos({ top: r.bottom + 6, left: r.left, width: Math.max(r.width, 160) });
+    };
+    updatePos();
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [open]);
+
+  const menu = open && menuPos ? (
+    <>
+      <div className="fixed inset-0 z-[9998]" onClick={() => setOpen(false)} />
+      <div
+        className={`fixed z-[9999] rounded-xl shadow-2xl border backdrop-blur-3xl focus:outline-none overflow-hidden ${
+          isLight ? "bg-white border-[#d6d3cc] shadow-lg" : "bg-[#1a1d2e] border-indigo-500/30 shadow-[0_10px_40px_rgba(99,102,241,0.25)]"
+        }`}
+        style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width, maxHeight: '60vh' }}
+      >
+        <div className="py-1 max-h-[60vh] overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => { onChange(opt); setOpen(false); }}
+              className={`block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-indigo-600 hover:text-white ${
+                isLight ? "text-slate-800 font-medium" : "text-slate-100"
+              } ${
+                value === opt ? "bg-indigo-500/20 text-indigo-400 font-bold" : ""
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  ) : null;
+
   return (
-    <div className="relative inline-block text-left w-full min-w-[140px]" style={{ zIndex: open ? 50 : 10 }}>
+    <div className="relative inline-block text-left w-full min-w-[140px]">
       <div>
         <button
+          ref={btnRef}
           type="button"
           onClick={() => setOpen(!open)}
           className={`inline-flex justify-between items-center w-full rounded-xl border px-4 py-2.5 text-sm transition-all ${
@@ -62,34 +117,8 @@ function CustomSelect({
           </svg>
         </button>
       </div>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className={`origin-top-right absolute right-0 mt-1.5 w-full rounded-xl shadow-2xl border backdrop-blur-3xl focus:outline-none z-50 overflow-hidden animate-in fade-in slide-in-from-top-1.5 duration-200 ${
-            isLight ? "bg-white border-[#d6d3cc] shadow-lg" : "bg-[#1a1d2e] border-indigo-500/30 shadow-[0_10px_40px_rgba(99,102,241,0.15)]"
-          }`}>
-            <div className="py-1 max-h-64 overflow-y-auto scrollbar-thin">
-              {options.map((opt) => (
-                <button
-                  key={opt}
-                  type="button"
-                  onClick={() => {
-                    onChange(opt);
-                    setOpen(false);
-                  }}
-                  className={`block w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-indigo-600 hover:text-white ${
-                    isLight ? "text-slate-800 font-medium" : "text-slate-100"
-                  } ${
-                    value === opt ? "bg-indigo-500/20 text-indigo-400 font-bold" : ""
-                  }`}
-                >
-                  {opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+      {/* Render menu via portal so it's never clipped by overflow ancestors */}
+      {menu && typeof document !== 'undefined' ? createPortal(menu, document.body) : menu}
     </div>
   );
 }
@@ -248,10 +277,10 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   const uploadAndInsertImage = async (file: File) => {
     if (!file.type.startsWith('image/')) return;
     if (file.size > 5 * 1024 * 1024) {
-      alert(isZh ? '图片大小不能超过 5MB' : 'Image size must be under 5MB');
+      alert(isZh ? '\u56fe\u7247\u5927\u5c0f\u4e0d\u80fd\u8d85\u8fc7 5MB' : 'Image size must be under 5MB');
       return;
     }
-    setLoadingText(isZh ? "上传图片中..." : "Uploading image...");
+    setLoadingText(isZh ? "\u4e0a\u4f20\u56fe\u7247\u4e2d..." : "Uploading image...");
     try {
       if (authToken) {
         const res = await adminApi.uploadImage(authToken, file);
@@ -261,12 +290,11 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         }
       }
     } catch {
-      console.error('图片上传失败');
+      console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25');
     }
     setLoadingText(null);
   };
-
-  // Markdown 格式化：统一排版（标题空行、代码块间距、图片间距、清理多余空行）
+  // Markdown \u683c\u5f0f\u5316\uff1a\u7edf\u4e00\u6392\u7248\uff08\u6807\u9898\u7a7a\u884c\u3001\u4ee3\u7801\u5757\u95f4\u8ddd\u3001\u56fe\u7247\u95f4\u8ddd\u3001\u6e05\u7406\u591a\u4f59\u7a7a\u884c\uff09
   const formatMarkdown = () => {
     let md = editMarkdown;
     md = md.replace(/\r\n/g, '\n');
@@ -309,7 +337,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     const tocBlock = `## ${isZh ? '目录' : 'Table of Contents'}\n\n${tocLines.join('\n')}\n`;
     // 移除旧 TOC
     let content = editMarkdown;
-    const tocRegex = /## (?:\u76ee\u5f55|Table of Contents)\n\n(?:[^\n]+\n)*/;;
+    const tocRegex = /## (?:\u76ee\u5f55|Table of Contents)\n\n(?:[^\n]+\n)*/;
     content = content.replace(tocRegex, '');
     // 在第一个标题后插入 TOC
     const firstHeadingEnd = content.search(/\n(?=#{1,6} )/);
@@ -470,17 +498,26 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
             {/* Articles Table Grid */}
             <div className={`rounded-2xl overflow-hidden backdrop-blur-xl ${isLight ? "bg-[#fefdfb] border border-[#e5e2db] shadow-sm" : "bg-[#0c0e16]/60 border border-white/[0.08]"}`}>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse" id="articles-list-table">
+              <div>
+                <table className="w-full table-fixed text-left border-collapse" id="articles-list-table">
+                  <colgroup>
+                    <col style={{ width: "32%" }} />
+                    <col style={{ width: "11%" }} />
+                    <col style={{ width: "15%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "14%" }} />
+                  </colgroup>
                   <thead>
                     <tr className={`text-sm font-mono tracking-wider uppercase ${isLight ? "border-b border-[#e5e2db] text-slate-600 bg-[#f8f7f4]" : "border-b border-white/[0.08] text-slate-400 bg-[#05060a]/40"}`}>
-                      <th className="py-4 px-6">{isZh ? "文章标题" : "Title"}</th>
-                      <th className="py-4 px-6">{isZh ? "分类" : "Category"}</th>
-                      <th className="py-4 px-6">{isZh ? "标签" : "Tags"}</th>
-                      <th className="py-4 px-6">{isZh ? "发布状态" : "Status"}</th>
-                      <th className="py-4 px-6">{isZh ? "发布时间" : "Date"}</th>
-                      <th className="py-4 px-6">{isZh ? "修改时间" : "Modified"}</th>
-                      <th className="py-4 px-6 text-right">{isZh ? "操作" : "Actions"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "文章标题" : "Title"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "分类" : "Category"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "标签" : "Tags"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "发布状态" : "Status"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "发布时间" : "Date"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate">{isZh ? "修改时间" : "Modified"}</th>
+                      <th className="py-4 px-3 overflow-hidden whitespace-nowrap truncate text-right">{isZh ? "操作" : "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody className={isLight ? "divide-y divide-[#e5e2db]" : "divide-y divide-white/[0.06]"}>
@@ -491,8 +528,8 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           className={`hover:bg-white/[0.01] transition-all text-sm ${isLight ? "hover:bg-[#f8f7f4]" : ""}`}
                         >
                           {/* Title */}
-                          <td className="py-4 px-6">
-                            <div className="max-w-xs md:max-w-md flex items-center gap-3">
+                          <td className="py-4 px-3 overflow-hidden">
+                            <div className="flex items-center gap-3 min-w-0 overflow-hidden">
                               {art.coverImage ? (
                                 <div className="w-12 h-9 rounded-lg overflow-hidden bg-slate-900/50 border border-white/10 shrink-0">
                                   <img 
@@ -518,7 +555,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           </td>
 
                           {/* Category */}
-                          <td className="py-4 px-6">
+                          <td className="py-4 px-3 overflow-hidden">
                             <span className={`text-xs font-mono px-2.5 py-1 rounded-md font-bold flex items-center gap-1.5 ${
                               isLight ? "bg-indigo-50 text-indigo-600 border border-indigo-100" : "bg-indigo-500/5 text-indigo-400 border border-indigo-500/10"
                             }`}>
@@ -535,8 +572,8 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           </td>
 
                           {/* Tags */}
-                          <td className="py-4 px-6">
-                            <div className="flex flex-wrap gap-1.5 max-w-[150px]">
+                          <td className="py-4 px-3 overflow-hidden">
+                            <div className="flex flex-wrap gap-1.5 overflow-hidden">
                               {art.tags.map(t => (
                                 <span key={t} className={`text-xs font-sans px-2 py-0.5 rounded flex items-center gap-1 ${
                                   isLight ? "bg-[#f0efeb] text-slate-600" : "bg-white/5 text-slate-400"
@@ -549,7 +586,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                           </td>
 
                           {/* Status */}
-                          <td className="py-4 px-6">
+                          <td className="py-4 px-3 overflow-hidden">
                             <span className={`inline-flex items-center gap-1.5 text-sm font-semibold tracking-wider ${
                               art.status === "published" ? "text-emerald-400" : "text-amber-400"
                             }`}>

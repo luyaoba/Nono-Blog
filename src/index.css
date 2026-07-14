@@ -17,6 +17,17 @@ body {
 }
 
 /* Beautiful custom scrollbars globally and for specific scroll containers */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.28) transparent;
+}
+
+.dark *,
+[data-theme="dark"] *,
+html.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -27,22 +38,31 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.25);
+  background: rgba(156, 163, 175, 0.28);
   border-radius: 9999px;
-  border: 2px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.45);
+  background: rgba(156, 163, 175, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Dark mode specific scrollbar */
 .dark ::-webkit-scrollbar-thumb,
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+[data-theme="dark"] ::-webkit-scrollbar-thumb,
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .dark ::-webkit-scrollbar-thumb:hover,
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover,
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
+
+/* Hide scrollbars inside dropdown menus (they use max-h) for cleaner look */
+.no-scrollbar::-webkit-scrollbar { width: 0; height: 0; display: none; }
+.no-scrollbar { scrollbar-width: none; }
