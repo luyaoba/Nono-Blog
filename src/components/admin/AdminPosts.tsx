@@ -76,9 +76,9 @@ function CustomSelect({
         className={`fixed z-[9999] rounded-xl shadow-2xl border backdrop-blur-3xl focus:outline-none overflow-hidden ${
           isLight ? "bg-white border-[#d6d3cc] shadow-lg" : "bg-[#1a1d2e] border-indigo-500/30 shadow-[0_10px_40px_rgba(99,102,241,0.25)]"
         }`}
-        style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width, maxHeight: '60vh' }}
+        style={{ top: menuPos.top, left: menuPos.left, width: menuPos.width, maxHeight: '240px' }}
       >
-        <div className="py-1 max-h-[60vh] overflow-y-auto">
+        <div className="py-1 max-h-[240px] overflow-y-auto">
           {options.map((opt) => (
             <button
               key={opt}
@@ -272,28 +272,6 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   // Global loading overlay
   const [loadingText, setLoadingText] = useState<string | null>(null);
 
-  // Markdown image upload helper (drag/paste)
-  const [dragOver, setDragOver] = useState(false);
-  const uploadAndInsertImage = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 5 * 1024 * 1024) {
-      alert(isZh ? '\u56fe\u7247\u5927\u5c0f\u4e0d\u80fd\u8d85\u8fc7 5MB' : 'Image size must be under 5MB');
-      return;
-    }
-    setLoadingText(isZh ? "\u4e0a\u4f20\u56fe\u7247\u4e2d..." : "Uploading image...");
-    try {
-      if (authToken) {
-        const res = await adminApi.uploadImage(authToken, file);
-        if (res.url) {
-          const imgMd = `![${file.name}](${res.url})`;
-          setEditMarkdown(prev => prev + '\n' + imgMd + '\n');
-        }
-      }
-    } catch {
-      console.error('\u56fe\u7247\u4e0a\u4f20\u5931\u8d25');
-    }
-    setLoadingText(null);
-  };
   // Markdown \u683c\u5f0f\u5316\uff1a\u7edf\u4e00\u6392\u7248\uff08\u6807\u9898\u7a7a\u884c\u3001\u4ee3\u7801\u5757\u95f4\u8ddd\u3001\u56fe\u7247\u95f4\u8ddd\u3001\u6e05\u7406\u591a\u4f59\u7a7a\u884c\uff09
   const formatMarkdown = () => {
     let md = editMarkdown;
