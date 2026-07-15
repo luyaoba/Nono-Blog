@@ -21,6 +21,19 @@
 - **Loading 体系**：统一 LoadingOverlay 组件覆盖所有 CRUD 和文件上传操作
 - **双入口构建**：Vite 多入口打包，主站 `index.html` + 后台 `admin.html`
 
+## 安全特性
+
+- **JWT 认证**：HS256 签名 + 算法校验，令牌 7 天有效期
+- **密码哈希**：PBKDF2-SHA256（10 万次迭代 + 随机盐），首次登录自动迁移明文密码
+- **SQL 注入防护**：全部使用参数化查询（D1 `.bind()`），无字符串拼接
+- **CORS 策略**：管理员接口限制同源/同域，预检请求与实际请求策略一致
+- **速率限制**：登录（5 次/15 分钟）、点赞（30 次/小时）、评论（20 次/小时）、上传（60 次/小时）
+- **XSS 防护**：Markdown 链接协议白名单（http/https/mailto/tel），R2 图片响应安全头
+- **Draft 保护**：草稿/已下线文章不通过公开 API 暴露
+- **密钥隔离**：JWT_SECRET 通过 Cloudflare Secret 管理，不在代码或配置文件中
+- **上传白名单**：仅允许 JPG/PNG/WebP/GIF/SVG，5MB 大小限制
+- **配置白名单**：站点配置接口仅允许预定义键名
+
 ## 技术架构
 
 ```
@@ -229,13 +242,20 @@ npx wrangler pages deploy dist --project-name=nono-blog
 4. 访问 https://giscus.app/zh-CN 配置并获取嵌入参数
 5. 将参数更新到 `src/components/Giscus.tsx`
 
-### 步骤 7：配置自动部署（可选）
+### 步骤 7：配置自动部署
+
+推送代码到 `main` 分支时，GitHub Actions 会**自动部署前端和 Worker**。
 
 1. 仓库 **Settings** → **Secrets and variables** → **Actions**
 2. 添加 Secret：
    - `CLOUDFLARE_API_TOKEN`：步骤 1.3 创建的 Token
    - `CLOUDFLARE_ACCOUNT_ID`：Dashboard 首页右侧的 Account ID
-3. 推送到 `main` 分支即自动触发部署
+3. 推送到 `main` 分支即自动触发部署（前端 Pages + Worker API 同时部署）
+
+> **手动操作**（不通过 git push）：
+> - 修改管理员密码：`npx wrangler d1 execute blog_db --remote --command="UPDATE admin_users SET password_hash = '新密码' WHERE username = 'admin';"`
+> - 轮换 JWT_SECRET：`npx wrangler secret put JWT_SECRET`
+> - 仅部署 Worker：`cd workers && npx wrangler deploy`
 
 ## 项目结构
 
@@ -326,7 +346,7 @@ UPDATE admin_users SET password_hash = '你的新密码哈希' WHERE username = 
 | GET | `/api/articles` | 获取已发布文章列表 |
 | GET | `/api/articles/:id` | 获取单篇文章（自动 +1 浏览量） |
 | GET | `/api/articles/:id/likes` | 获取点赞数 + 当前 IP 是否已赞 |
-| POST | `/api/articles/:id/likes` | 点赞（IP 去重，24h 冷却） |
+| POST | `/api/articles/:id/like` | 点赞（IP 去重，24h 冷却，原子操作防竞态） |
 | GET | `/api/projects` | 获取项目列表 |
 | GET | `/api/tags` | 获取标签列表（仅统计已发布文章） |
 | GET | `/api/categories` | 获取分类列表 |
@@ -371,14 +391,27 @@ A: 刷新前端页面即可。后台保存后会重新从 API 拉取最新配置
 
 ### Q: `JWT_SECRET` 应该怎么设置？
 
-A: 不要写在 `wrangler.toml` 的 `[vars]` 中（该文件可能意外提交到 Git）。正确做法：
+A: 不要写在 `wrangler.toml` 的 `[vars]` 中（该文件会提交到 Git）。正确做法：
 
 ```bash
 cd workers
 npx wrangler secret put JWT_SECRET
 ```
 
-输入一个随机字符串（推荐 32 字节 hex）。
+输入一个随机字符串（推荐 32 字节 hex）。设置后所有旧 JWT 令牌立即失效。
+
+### Q: 如何修改管理员密码？
+
+A: 直接更新 D1 数据库中的明文密码，下次登录时系统会自动哈希为 PBKDF2：
+
+```bash
+cd workers
+npx wrangler d1 execute blog_db --remote --command="UPDATE admin_users SET password_hash = '新密码' WHERE username = 'admin';"
+```
+
+### Q: 代码修改后需要重启吗？
+
+A: 不需要。Cloudflare Workers 是 Serverless 架构，部署后立即生效。`git push` 后 GitHub Actions 自动部署前端和 Worker，约 2 分钟完成。
 
 ## License
 
