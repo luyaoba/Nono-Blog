@@ -11,15 +11,43 @@ function json(data: unknown, status = 200) {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   });
 }
 
 function error(msg: string, status = 400) {
   return json({ error: msg }, status);
+}
+
+// 判断来源是否受信任（管理员接口仅允许同源或同 eTLD+1 域名 + localhost 开发）
+function isAllowedOrigin(origin: string, apiHost: string): boolean {
+  if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) return true;
+  try {
+    const originHost = new URL(origin).host;
+    if (originHost === apiHost) return true;
+    const domain = (host: string) => host.split('.').slice(-2).join('.');
+    return domain(originHost) === domain(apiHost);
+  } catch {
+    return false;
+  }
+}
+
+function getCorsHeaders(request: Request): HeadersInit {
+  const url = new URL(request.url);
+  const isAdmin = url.pathname.startsWith('/api/admin') || url.pathname === '/api/auth/login';
+  const origin = request.headers.get('Origin');
+  const headers: HeadersInit = {
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+  if (isAdmin) {
+    if (origin && isAllowedOrigin(origin, url.host)) {
+      headers['Access-Control-Allow-Origin'] = origin;
+    }
+  } else {
+    headers['Access-Control-Allow-Origin'] = origin || '*';
+  }
+  return headers;
 }
 
 // 从 Authorization header 中提取并验证 JWT
@@ -30,6 +58,8 @@ async function verifyAuth(request: Request, secret: string): Promise<{ sub: stri
     const token = header.slice(7);
     const [headerB64, payloadB64, sigB64] = token.split('.');
     if (!headerB64 || !payloadB64 || !sigB64) return null;
+    const jwtHeader = JSON.parse(new TextDecoder().decode(base64UrlDecode(headerB64)));
+    if (jwtHeader.alg !== 'HS256') return null;
     const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
     const valid = await crypto.subtle.verify('HMAC', key, base64UrlDecode(sigB64), new TextEncoder().encode(`${headerB64}.${payloadB64}`));
     if (!valid) return null;
@@ -229,7 +259,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // 获取单篇文章
   if (path.startsWith('/api/articles/') && method === 'GET') {
     const id = path.split('/')[3];
-    const article = await env.DB.prepare('SELECT * FROM articles WHERE id = ?').bind(id).first();
+    const article = await env.DB.prepare('SELECT * FROM articles WHERE id = ? AND status = ?').bind(id, 'published').first();
     if (!article) return error('文章不存在', 404);
     const tags = await env.DB.prepare('SELECT t.* FROM tags t JOIN article_tags at ON t.id = at.tag_id WHERE at.article_id = ?').bind(id).all();
     (article as any).tags = (tags.results || []).map((t: any) => t.name);
@@ -285,6 +315,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     }
     const body = await request.json() as any;
     if (!body.author || !body.content || !body.articleId) return error('昵称、内容和文章ID为必填');
+    if (typeof body.author !== 'string' || body.author.length > 50) return error('昵称过长');
+    if (typeof body.content !== 'string' || body.content.length > 2000) return error('评论内容过长');
+    if (body.email && (typeof body.email !== 'string' || body.email.length > 100)) return error('邮箱过长');
     const id = `c-${Date.now()}`;
     const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
     await env.DB.prepare('INSERT INTO comments (id, author, email, article_id, article_title, content, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
@@ -499,6 +532,10 @@ async function handleImage(request: Request, env: Env): Promise<Response> {
   headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   // Cloudflare CDN 缓存 30 天
   headers.set('CDN-Cache-Control', 'public, max-age=2592000');
+  // 安全头：防止 SVG/HTML 被当作可执行文档渲染
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Content-Security-Policy', "default-src 'none'; script-src 'none'; frame-ancestors 'none'");
   return new Response(object.body, { headers });
 }
 
@@ -511,12 +548,21 @@ export default {
 
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/images/')) {
-      return handleImage(request, env);
+      const response = await handleImage(request, env);
+      const corsHeaders = getCorsHeaders(request);
+      const newHeaders = new Headers(response.headers);
+      for (const [k, v] of Object.entries(corsHeaders)) newHeaders.set(k, v);
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers: newHeaders });
     }
     try {
-      return await handleRequest(request, env);
+      const response = await handleRequest(request, env);
+      const corsHeaders = getCorsHeaders(request);
+      const newHeaders = new Headers(response.headers);
+      for (const [k, v] of Object.entries(corsHeaders)) newHeaders.set(k, v);
+      return new Response(response.body, { status: response.status, statusText: response.statusText, headers: newHeaders });
     } catch (err: any) {
-      return error(err.message || '服务器内部错误', 500);
+      console.error('Unhandled error:', err);
+      return error('服务器内部错误', 500);
     }
   },
 };

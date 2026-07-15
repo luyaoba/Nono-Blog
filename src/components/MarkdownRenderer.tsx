@@ -23,6 +23,20 @@ export function slugify(text: string): string {
   return text.toLowerCase().replace(/[\s]+/g, '-').replace(/[^\w\u4e00-\u9fff-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'heading';
 }
 
+// 只允许安全的 URL 协议，阻止 javascript:/data:/vbscript: 等 XSS 向量
+function sanitizeUrl(href: string | undefined): string | undefined {
+  if (!href) return undefined;
+  if (href.startsWith('#')) return href;
+  const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
+  try {
+    const url = new URL(href, window.location.href);
+    if (!allowedProtocols.includes(url.protocol.toLowerCase())) return undefined;
+    return href;
+  } catch {
+    return undefined;
+  }
+}
+
 // 代码块组件（带复制按钮）
 function CodeBlock({ className, children, isLight }: { className?: string; children: React.ReactNode; isLight: boolean }) {
   const [copied, setCopied] = useState(false);
@@ -140,18 +154,19 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
             </blockquote>
           ),
           a: ({ href, children }) => {
+            const safeHref = sanitizeUrl(href);
             // 页面内锚点链接：平滑滚动，不开新窗口
-            if (href && href.startsWith('#')) {
+            if (safeHref && safeHref.startsWith('#')) {
               return (
                 <a
-                  href={href}
+                  href={safeHref}
                   onClick={(e) => {
                     e.preventDefault();
-                    const id = href.slice(1);
+                    const id = safeHref.slice(1);
                     const el = document.getElementById(decodeURIComponent(id));
                     if (el) {
                       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      try { history.replaceState(null, '', href); } catch {}
+                      try { history.replaceState(null, '', safeHref); } catch {}
                     }
                   }}
                   className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 cursor-pointer"
@@ -161,7 +176,7 @@ export default function MarkdownRenderer({ content, theme = "glow" }: MarkdownRe
               );
             }
             return (
-              <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
+              <a href={safeHref} target="_blank" rel="noopener noreferrer nofollow" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2">
                 {children}
               </a>
             );

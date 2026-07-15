@@ -12,4 +12,8 @@ binding = "IMAGES"
 bucket_name = "blog-images"
 
 [vars]
-JWT_SECRET = "change-this-to-a-random-string"
+# JWT_SECRET 请勿写在这里，避免泄露到 Git。
+# 部署前通过 wrangler secret 设置：
+#   cd workers
+#   npx wrangler secret put JWT_SECRET
+# 生成随机密钥：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
