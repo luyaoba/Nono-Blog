@@ -114,10 +114,11 @@ export const adminApi = {
       body: JSON.stringify(settings),
     }),
 
-  // 图片上传
-  uploadImage: (token: string, file: File) => {
+  // 图片上传（category: articles / covers / avatars / backgrounds）
+  uploadImage: (token: string, file: File, category: string = 'general') => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('category', category);
     return fetch(`${API_BASE}/api/admin/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

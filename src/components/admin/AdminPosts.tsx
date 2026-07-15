@@ -344,7 +344,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
     setLoadingText(isZh ? "\u4e0a\u4f20\u56fe\u7247\u4e2d..." : "Uploading image...");
     try {
       if (authToken) {
-        const res = await adminApi.uploadImage(authToken, file);
+        const res = await adminApi.uploadImage(authToken, file, 'articles');
         if (res.url) {
           const imgMd = `![${file.name}](${res.url})`;
           setEditMarkdown(prev => {
@@ -919,7 +919,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
                         if (authToken) {
                           setLoadingText(isZh ? "上传图片中..." : "Uploading...");
                           try {
-                            const res = await adminApi.uploadImage(authToken, file);
+                            const res = await adminApi.uploadImage(authToken, file, 'covers');
                             if (res.url) {
                               setActiveArticle({ ...activeArticle, coverImage: res.url });
                               setLoadingText(null);

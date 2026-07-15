@@ -312,7 +312,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                         if (authToken) {
                           setLoadingText(isZh ? "上传头像中..." : "Uploading avatar...");
                           try {
-                            const res = await adminApi.uploadImage(authToken, file);
+                            const res = await adminApi.uploadImage(authToken, file, 'avatars');
                             if (res.url) setAvatarUrl(res.url);
                           } catch {
                             const reader = new FileReader();
@@ -503,7 +503,7 @@ export default function AdminSettings({ settings, onUpdateSettings, authToken, o
                         if (authToken) {
                           setLoadingText(isZh ? "上传背景图中..." : "Uploading image...");
                           try {
-                            const res = await adminApi.uploadImage(authToken, file);
+                            const res = await adminApi.uploadImage(authToken, file, 'backgrounds');
                             if (res.url) setHomeImage(res.url);
                           } catch {
                             const reader = new FileReader();

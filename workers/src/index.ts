@@ -486,7 +486,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json({ message: '配置已更新' });
   }
 
-  // 上传图片到 R2（限速 60 张/小时）
+  // 上传图片到 R2（限速 60 张/小时，分类存储 + 时间戳文件名）
   if (path === '/api/admin/upload' && method === 'POST') {
     const clientIp = getClientIp(request);
     if (!checkRateLimit(clientIp, 'upload', 60, 60 * 60 * 1000)) {
@@ -498,8 +498,18 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (file.size > 5 * 1024 * 1024) return error('文件大小不能超过 5MB');
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
     if (!allowedTypes.includes(file.type)) return error('仅支持 JPG/PNG/WebP/GIF/SVG 图片');
-    const ext = file.name.split('.').pop() || 'jpg';
-    const key = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    // 分类目录（白名单）
+    const ALLOWED_CATEGORIES = ['articles', 'covers', 'avatars', 'backgrounds', 'general'];
+    const rawCategory = (formData.get('category') as string) || 'general';
+    const category = ALLOWED_CATEGORIES.includes(rawCategory) ? rawCategory : 'general';
+    // 时间戳文件名：YYYYMMDD-HHMMSS-随机hex.ext
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    const rand = crypto.getRandomValues(new Uint8Array(3));
+    const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
+    const ext = (file.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').slice(0, 5) || 'jpg';
+    const key = `uploads/${category}/${ts}-${randHex}.${ext}`;
     await env.IMAGES.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
     const origin = new URL(request.url).origin;
     const imageUrl = `${origin}/api/images/${key}`;
