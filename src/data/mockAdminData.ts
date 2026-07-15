@@ -47,18 +47,6 @@ export interface Category {
   iconType?: "laptop" | "server" | "cloud" | "palette" | "pen-tool" | "wrench" | "brain" | "globe" | "cpu" | "terminal" | "flame" | "sparkles" | "rocket";
 }
 
-export interface Comment {
-  id: string;
-  author: string;
-  avatar?: string;
-  email: string;
-  articleTitle: string;
-  articleId: string;
-  content: string;
-  date: string;
-  status: "pending" | "approved" | "spam";
-}
-
 export interface SiteSettings {
   nickname: string;
   title: string;
@@ -308,53 +296,6 @@ export const INITIAL_TAGS: Tag[] = [
   { id: "6", name: "Vite", slug: "vite", color: "from-purple-500 to-indigo-600", count: 2 },
   { id: "7", name: "性能优化", slug: "performance", color: "from-amber-500 to-orange-500", count: 2 },
   { id: "8", name: "设计模式", slug: "patterns", color: "from-pink-500 to-rose-500", count: 1 }
-];
-
-export const INITIAL_COMMENTS: Comment[] = [
-  {
-    id: "c-1",
-    author: "宇航员小白",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=white",
-    email: "xiaobai@space.com",
-    articleTitle: "使用 Cloudflare 部署全栈应用",
-    articleId: "cloudflare-deploy",
-    content: "这篇全栈部署指南真的太细致了！跟着一步步操作，我的 Pages 和 D1 数据库直接通了，边缘节点响应简直是零迟滞！强烈支持博主！",
-    date: "2026-07-07 18:24",
-    status: "approved"
-  },
-  {
-    id: "c-2",
-    author: "前端架构师-老刘",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=laoliu",
-    email: "laoliu@architect.com",
-    articleTitle: "从零构建一个高性能 Blog",
-    articleId: "high-perf-blog",
-    content: "代码分割和 CDN 预热部分写得很棒。不过我想问，如果组件中有很多大体量的第三方图表组件，如何最优雅地进行路由分割呢？",
-    date: "2026-07-06 14:10",
-    status: "pending"
-  },
-  {
-    id: "c-3",
-    author: "SEO运营官",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=spam",
-    email: "advert@spammail.com",
-    articleTitle: "我的 2024 技术栈与工具",
-    articleId: "tech-stack-2024",
-    content: "超低价承接各类博客流量推广、SEO优化、外链代发，联系微信：xxxxxx",
-    date: "2026-07-05 09:12",
-    status: "spam"
-  },
-  {
-    id: "c-4",
-    author: "小林Coding",
-    avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=xiaolin",
-    email: "xiaolin@coding.dev",
-    articleTitle: "设计模式在前端中的应用",
-    articleId: "design-patterns",
-    content: "单例模式在 React 的 Context 包装层确实很经典。期待博主下一篇分享一下发布订阅模式和行为类模式！",
-    date: "2026-07-04 22:50",
-    status: "approved"
-  }
 ];
 
 export const INITIAL_SETTINGS: SiteSettings = {

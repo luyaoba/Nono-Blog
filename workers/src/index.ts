@@ -321,6 +321,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     if (typeof body.author !== 'string' || body.author.length > 50) return error('昵称过长');
     if (typeof body.content !== 'string' || body.content.length > 2000) return error('评论内容过长');
     if (body.email && (typeof body.email !== 'string' || body.email.length > 100)) return error('邮箱过长');
+    if (body.articleTitle && (typeof body.articleTitle !== 'string' || body.articleTitle.length > 200)) return error('文章标题过长');
     const id = `c-${Date.now()}`;
     const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
     await env.DB.prepare('INSERT INTO comments (id, author, email, article_id, article_title, content, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
@@ -381,6 +382,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   if (path.startsWith('/api/admin/comments/') && method === 'PUT') {
     const id = path.split('/')[4];
     const body = await request.json() as any;
+    const ALLOWED_COMMENT_STATUSES = ['approved', 'pending', 'spam'];
+    if (!ALLOWED_COMMENT_STATUSES.includes(body.status)) return error('无效的评论状态', 400);
     await env.DB.prepare('UPDATE comments SET status = ? WHERE id = ?').bind(body.status, id).run();
     return json({ message: '已更新' });
   }
@@ -395,9 +398,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // 创建文章
   if (path === '/api/admin/articles' && method === 'POST') {
     const body = await request.json() as any;
+    const ALLOWED_STATUSES = ['published', 'draft'];
     const id = body.id || `article-${Date.now()}`;
+    const articleStatus = ALLOWED_STATUSES.includes(body.status) ? body.status : 'draft';
     await env.DB.prepare('INSERT INTO articles (id, title, summary, content, date, category, read_time, gradient, thumbnail_type, status, cover_image, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(id, body.title, body.summary, body.content || '', body.date || new Date().toISOString(), body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', body.status || 'draft', body.coverImage || '', new Date().toISOString(), new Date().toISOString()).run();
+      .bind(id, body.title, body.summary, body.content || '', body.date || new Date().toISOString(), body.category, body.readTime || '', body.gradient || '', body.thumbnailType || 'starfield', articleStatus, body.coverImage || '', new Date().toISOString(), new Date().toISOString()).run();
     // 处理标签关联
     if (body.tags?.length) {
       for (const tagName of body.tags) {
@@ -422,7 +427,9 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const readTime = body.readTime !== undefined ? body.readTime : (existing.read_time || '');
     const gradient = body.gradient !== undefined ? body.gradient : (existing.gradient || '');
     const thumbnailType = body.thumbnailType !== undefined ? body.thumbnailType : (existing.thumbnail_type || 'starfield');
-    const status = body.status !== undefined ? body.status : existing.status;
+    const ALLOWED_STATUSES = ['published', 'draft'];
+    const rawStatus = body.status !== undefined ? body.status : existing.status;
+    const status = ALLOWED_STATUSES.includes(rawStatus) ? rawStatus : existing.status;
     const coverImage = body.coverImage !== undefined ? body.coverImage : (existing.cover_image || '');
     const date = body.date !== undefined ? body.date : existing.date;
     // Clean up old cover image from R2 if replaced
@@ -554,7 +561,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const slug = (body.slug || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const color = (body.color || '').trim();
     if (!name) return error('标签名称不能为空', 400);
+    if (name.length > 50) return error('标签名称不能超过50个字符', 400);
     if (!slug) return error('标签 Slug 不能为空', 400);
+    if (slug.length > 100) return error('标签 Slug 不能超过100个字符', 400);
+    if (color.length > 200) return error('标签颜色值过长', 400);
     const existing = await env.DB.prepare('SELECT 1 FROM tags WHERE slug = ?').bind(slug).first();
     if (existing) return error('标签 Slug 已存在', 409);
     await env.DB.prepare('INSERT INTO tags (id, name, slug, color, count) VALUES (?, ?, ?, ?, 0)').bind(id, name, slug, color).run();
@@ -572,7 +582,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const slug = (rawSlug || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const color = body.color !== undefined ? body.color : (existing.color || '');
     if (!name) return error('标签名称不能为空', 400);
+    if (name.length > 50) return error('标签名称不能超过50个字符', 400);
     if (!slug) return error('标签 Slug 不能为空', 400);
+    if (slug.length > 100) return error('标签 Slug 不能超过100个字符', 400);
+    if (color.length > 200) return error('标签颜色值过长', 400);
     const conflict = await env.DB.prepare('SELECT 1 FROM tags WHERE slug = ? AND id != ?').bind(slug, id).first();
     if (conflict) return error('标签 Slug 已存在', 409);
     await env.DB.prepare('UPDATE tags SET name = ?, slug = ?, color = ? WHERE id = ?').bind(name, slug, color, id).run();
@@ -598,7 +611,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const colorName = (body.colorName || '').trim();
     const iconType = (body.iconType || 'laptop').trim();
     if (!id) return error('分类 ID 不能为空', 400);
+    if (id.length > 100) return error('分类 ID 不能超过100个字符', 400);
     if (!title) return error('分类名称不能为空', 400);
+    if (title.length > 100) return error('分类名称不能超过100个字符', 400);
+    if (description.length > 500) return error('分类描述不能超过500个字符', 400);
     const existing = await env.DB.prepare('SELECT 1 FROM categories WHERE id = ?').bind(id).first();
     if (existing) return error('分类 ID 已存在', 409);
     await env.DB.prepare('INSERT INTO categories (id, title, description, color_name, icon_type) VALUES (?, ?, ?, ?, ?)')
@@ -617,6 +633,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const colorName = body.colorName !== undefined ? body.colorName : (existing.color_name || '');
     const iconType = body.iconType !== undefined ? body.iconType : (existing.icon_type || 'laptop');
     if (!title) return error('分类名称不能为空', 400);
+    if (title.length > 100) return error('分类名称不能超过100个字符', 400);
+    if (typeof description === 'string' && description.length > 500) return error('分类描述不能超过500个字符', 400);
     await env.DB.prepare('UPDATE categories SET title = ?, description = ?, color_name = ?, icon_type = ? WHERE id = ?')
       .bind(title, description, colorName, iconType, id).run();
     return json({ message: '分类已更新' });

@@ -323,7 +323,7 @@ id = "49b4009a-6bba-4e9f-889d-7df9fa435111"`;
           </div>
 
           {/* Giscus 评论区（GitHub 登录评论） */}
-          <Giscus theme={theme === "light" ? "light" : "dark"} />
+          <Giscus theme={theme === "light" ? "light" : "dark"} articleId={targetArticle?.id} />
         </div>
 
         {/* Right column: Sticky Navigation TOC (目录) */}

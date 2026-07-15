@@ -18,13 +18,11 @@ import {
   INITIAL_ARTICLES, 
   INITIAL_PROJECTS, 
   INITIAL_TAGS, 
-  INITIAL_COMMENTS, 
   INITIAL_SETTINGS,
   INITIAL_CATEGORIES,
   Article,
   Project,
   Tag,
-  Comment,
   SiteSettings,
   Category
 } from "./data/mockAdminData";
@@ -58,7 +56,6 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
   const [tags, setTags] = useState<Tag[]>(INITIAL_TAGS);
   const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [comments, setComments] = useState<Comment[]>(INITIAL_COMMENTS);
   const [settings, setSettings] = useState<SiteSettings>(INITIAL_SETTINGS);
 
   // 从 API 加载数据

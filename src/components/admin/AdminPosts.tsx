@@ -228,7 +228,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
 
   // Map category titles dynamically
   const categoriesList = categories.length > 0
-    ? [(isZh ? "\u5168\u90e8" : "All"), ...Array.from(new Set(categories.map(c => c.colorName).filter(n => n && n.trim() !== ""))).filter(c => c !== "\u5168\u90e8")]
+    ? [(isZh ? "\u5168\u90e8" : "All"), ...Array.from(new Set(categories.map(c => c.title).filter(n => n && n.trim() !== ""))).filter(c => c !== "\u5168\u90e8")]
     : [(isZh ? "\u5168\u90e8" : "All"), "\u524d\u7aef\u5f00\u53d1", "\u540e\u7aef\u5f00\u53d1", "Cloudflare", "\u8bbe\u8ba1\u7f8e\u5b66", "\u5de5\u5177\u63a8\u8350"];
 
   const editorCategories = categoriesList.filter(c => c !== "\u5168\u90e8" && c !== "All");
@@ -431,6 +431,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
+    setLoadingText(isZh ? "删除中..." : "Deleting...");
     // 乐观更新：立即移除UI
     const updated = articles.filter(a => a.id !== deleteTarget);
     onUpdateArticles(updated);
@@ -441,7 +442,11 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         await adminApi.deleteArticle(authToken, deleteTarget);
       } catch {
         console.error('文章删除失败');
+      } finally {
+        setLoadingText(null);
       }
+    } else {
+      setLoadingText(null);
     }
   };
 
@@ -467,6 +472,7 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
   // Save — 乐观更新：先更新UI，后台同步API
   const handleSave = async () => {
     if (!activeArticle || !activeArticle.id) return;
+    setLoadingText(isZh ? "保存中..." : "Saving...");
 
     // Build the updated object
     const finalArticle: Article = {
@@ -508,7 +514,11 @@ export default function AdminPosts({ articles, onUpdateArticles, categories = []
         }
       } catch (err) {
         console.error('文章保存失败:', err);
+      } finally {
+        setLoadingText(null);
       }
+    } else {
+      setLoadingText(null);
     }
   };
 

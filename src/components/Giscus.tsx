@@ -2,9 +2,10 @@ import { useEffect, useRef } from "react";
 
 interface GiscusProps {
   theme?: "dark" | "light";
+  articleId?: string;
 }
 
-export default function Giscus({ theme = "dark" }: GiscusProps) {
+export default function Giscus({ theme = "dark", articleId }: GiscusProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,7 +23,9 @@ export default function Giscus({ theme = "dark" }: GiscusProps) {
     script.setAttribute("data-repo-id", "R_kgDOTS7Ayw");
     script.setAttribute("data-category", "General");
     script.setAttribute("data-category-id", "DIC_kwDOTS7Ay84DA0lV");
-    script.setAttribute("data-mapping", "pathname");
+    // 使用 articleId 作为 term，确保每篇文章对应独立的评论讨论
+    script.setAttribute("data-mapping", "specific");
+    script.setAttribute("data-term", articleId || "default");
     script.setAttribute("data-strict", "0");
     script.setAttribute("data-reactions-enabled", "1");
     script.setAttribute("data-emit-metadata", "0");
@@ -33,7 +36,7 @@ export default function Giscus({ theme = "dark" }: GiscusProps) {
     script.async = true;
 
     container.appendChild(script);
-  }, [theme]);
+  }, [theme, articleId]);
 
   return <div ref={containerRef} className="mt-12" />;
 }

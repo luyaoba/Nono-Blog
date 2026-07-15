@@ -42,14 +42,6 @@ export const api = {
   // 分类
   getCategories: () => request<any[]>('/api/categories'),
 
-  // 评论（已审核）
-  getApprovedComments: (articleId: string) =>
-    request<any[]>(`/api/comments?articleId=${articleId}`),
-
-  // 提交评论
-  submitComment: (data: { author: string; content: string; articleId: string; articleTitle?: string; email?: string }) =>
-    request<any>('/api/comments', { method: 'POST', body: JSON.stringify(data) }),
-
   // 站点配置
   getSettings: () => request<Record<string, string>>('/api/settings'),
 
@@ -70,21 +62,6 @@ export const api = {
 
 // ===== 管理员 API（需 JWT） =====
 export const adminApi = {
-  // 评论管理
-  getAllComments: (token: string) =>
-    request<any[]>('/api/admin/comments', { headers: authHeaders(token) }),
-  updateComment: (token: string, id: string, status: string) =>
-    request<any>(`/api/admin/comments/${id}`, {
-      method: 'PUT',
-      headers: authHeaders(token),
-      body: JSON.stringify({ status }),
-    }),
-  deleteComment: (token: string, id: string) =>
-    request<any>(`/api/admin/comments/${id}`, {
-      method: 'DELETE',
-      headers: authHeaders(token),
-    }),
-
   // 文章管理
   getArticles: (token: string) =>
     request<any[]>('/api/admin/articles', { headers: authHeaders(token) }),

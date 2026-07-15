@@ -31,6 +31,7 @@ import { Tag, Category } from "../../data/mockAdminData";
 import { adminApi } from "../../api";
 import { translations } from "../../data/translations";
 import ConfirmDialog from "./ConfirmDialog";
+import LoadingOverlay from "./LoadingOverlay";
 
 // Custom polished dropdown selector to replace native <select> elements
 function CustomSelect({ 
@@ -125,6 +126,7 @@ export default function AdminTags({
 
   const [isAdding, setIsAdding] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
+  const [loadingText, setLoadingText] = useState<string | null>(null);
 
   // Pagination for tags and categories
   const [tagPage, setTagPage] = useState(1);
@@ -239,6 +241,7 @@ export default function AdminTags({
       return;
     }
 
+    setLoadingText(isZh ? "保存中..." : "Saving...");
     try {
       if (editingTag) {
         await adminApi.updateTag(authToken, editingTag.id, {
@@ -278,6 +281,8 @@ export default function AdminTags({
       showToast(isZh ? "标签已保存" : "Tag saved");
     } catch (err: any) {
       showToast(err.message || (isZh ? "保存失败" : "Save failed"));
+    } finally {
+      setLoadingText(null);
     }
   };
 
@@ -292,6 +297,7 @@ export default function AdminTags({
       showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
       return;
     }
+    setLoadingText(isZh ? "删除中..." : "Deleting...");
     try {
       await adminApi.deleteTag(authToken, deleteTagId);
       onUpdateTags(tags.filter(t => t.id !== deleteTagId));
@@ -299,6 +305,8 @@ export default function AdminTags({
       showToast(isZh ? "标签已删除" : "Tag deleted");
     } catch (err: any) {
       showToast(err.message || (isZh ? "删除失败" : "Delete failed"));
+    } finally {
+      setLoadingText(null);
     }
   };
 
@@ -322,6 +330,7 @@ export default function AdminTags({
       return;
     }
 
+    setLoadingText(isZh ? "保存中..." : "Saving...");
     try {
       if (editingCat) {
         await adminApi.updateCategory(authToken, editingCat.id, {
@@ -367,6 +376,8 @@ export default function AdminTags({
       showToast(isZh ? "分类已保存" : "Category saved");
     } catch (err: any) {
       showToast(err.message || (isZh ? "保存失败" : "Save failed"));
+    } finally {
+      setLoadingText(null);
     }
   };
 
@@ -385,6 +396,7 @@ export default function AdminTags({
       showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
       return;
     }
+    setLoadingText(isZh ? "删除中..." : "Deleting...");
     try {
       await adminApi.deleteCategory(authToken, deleteCatId);
       onUpdateCategories(categories.filter(c => c.id !== deleteCatId));
@@ -392,6 +404,8 @@ export default function AdminTags({
       showToast(isZh ? "分类已删除" : "Category deleted");
     } catch (err: any) {
       showToast(err.message || (isZh ? "删除失败" : "Delete failed"));
+    } finally {
+      setLoadingText(null);
     }
   };
 
@@ -428,6 +442,7 @@ export default function AdminTags({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300" id="admin-tags-container">
+      <LoadingOverlay visible={!!loadingText} text={loadingText || undefined} />
       {/* Tab toggle */}
       <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 ${isLight ? "border-b border-[#e5e2db]" : "border-b border-white/[0.08]"}`}>
         <div className={`flex items-center gap-1.5 p-1 rounded-xl border ${isLight ? "bg-[#f0efeb] border border-[#e5e2db]" : "bg-[#0a0c14]/50 border-white/[0.08]"}`}>
