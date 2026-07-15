@@ -106,6 +106,44 @@ export const adminApi = {
       headers: authHeaders(token),
     }),
 
+  // 标签管理
+  createTag: (token: string, data: Partial<Tag>) =>
+    request<any>('/api/admin/tags', {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    }),
+  updateTag: (token: string, id: string, data: Partial<Tag>) =>
+    request<any>(`/api/admin/tags/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    }),
+  deleteTag: (token: string, id: string) =>
+    request<any>(`/api/admin/tags/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    }),
+
+  // 分类管理
+  createCategory: (token: string, data: Partial<Category>) =>
+    request<any>('/api/admin/categories', {
+      method: 'POST',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    }),
+  updateCategory: (token: string, id: string, data: Partial<Category>) =>
+    request<any>(`/api/admin/categories/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+      body: JSON.stringify(data),
+    }),
+  deleteCategory: (token: string, id: string) =>
+    request<any>(`/api/admin/categories/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    }),
+
   // 站点配置
   updateSettings: (token: string, settings: Record<string, string>) =>
     request<any>('/api/admin/settings', {

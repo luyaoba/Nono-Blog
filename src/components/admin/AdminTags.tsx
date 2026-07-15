@@ -28,6 +28,7 @@ import {
   Search
 } from "lucide-react";
 import { Tag, Category } from "../../data/mockAdminData";
+import { adminApi } from "../../api";
 import { translations } from "../../data/translations";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -105,6 +106,7 @@ interface AdminTagsProps {
   onUpdateCategories?: (updated: Category[]) => void;
   language?: "zh" | "en";
   theme?: "dark" | "light";
+  authToken?: string;
 }
 
 export default function AdminTags({ 
@@ -113,7 +115,8 @@ export default function AdminTags({
   categories = [], 
   onUpdateCategories,
   language = "zh",
-  theme = "dark"
+  theme = "dark",
+  authToken = ""
 }: AdminTagsProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
@@ -226,36 +229,56 @@ export default function AdminTags({
   };
 
   // Save Tag
-  const handleSaveTag = () => {
+  const handleSaveTag = async () => {
     if (!tagName.trim()) {
       showToast(isZh ? "标签名称不能为空！" : "Tag name cannot be empty!");
       return;
     }
-
-    if (editingTag) {
-      const updated = tags.map(t => t.id === editingTag.id ? {
-        ...t,
-        name: tagName,
-        slug: tagSlug || t.slug,
-        color: tagColor
-      } : t);
-      onUpdateTags(updated);
-      setEditingTag(null);
-    } else {
-      const newTag: Tag = {
-        id: "tag-" + Date.now(),
-        name: tagName,
-        slug: tagSlug || "tag-" + Date.now(),
-        color: tagColor,
-        count: 0
-      };
-      onUpdateTags([...tags, newTag]);
-      setIsAdding(false);
+    if (!authToken) {
+      showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
+      return;
     }
 
-    setTagName("");
-    setTagSlug("");
-    setTagColor("from-blue-500 to-indigo-500");
+    try {
+      if (editingTag) {
+        await adminApi.updateTag(authToken, editingTag.id, {
+          name: tagName,
+          slug: tagSlug || editingTag.slug,
+          color: tagColor,
+        });
+        const updated = tags.map(t => t.id === editingTag.id ? {
+          ...t,
+          name: tagName,
+          slug: tagSlug || t.slug,
+          color: tagColor
+        } : t);
+        onUpdateTags(updated);
+        setEditingTag(null);
+      } else {
+        const res = await adminApi.createTag(authToken, {
+          id: "tag-" + Date.now(),
+          name: tagName,
+          slug: tagSlug || "tag-" + Date.now(),
+          color: tagColor,
+          count: 0
+        });
+        const newTag: Tag = {
+          id: res.id || ("tag-" + Date.now()),
+          name: tagName,
+          slug: tagSlug || "tag-" + Date.now(),
+          color: tagColor,
+          count: 0
+        };
+        onUpdateTags([...tags, newTag]);
+        setIsAdding(false);
+      }
+      setTagName("");
+      setTagSlug("");
+      setTagColor("from-blue-500 to-indigo-500");
+      showToast(isZh ? "标签已保存" : "Tag saved");
+    } catch (err: any) {
+      showToast(err.message || (isZh ? "保存失败" : "Save failed"));
+    }
   };
 
   // Delete Tag
@@ -263,10 +286,19 @@ export default function AdminTags({
   const handleDeleteTag = (id: string) => {
     setDeleteTagId(id);
   };
-  const confirmDeleteTag = () => {
-    if (deleteTagId) {
+  const confirmDeleteTag = async () => {
+    if (!deleteTagId) return;
+    if (!authToken) {
+      showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
+      return;
+    }
+    try {
+      await adminApi.deleteTag(authToken, deleteTagId);
       onUpdateTags(tags.filter(t => t.id !== deleteTagId));
       setDeleteTagId(null);
+      showToast(isZh ? "标签已删除" : "Tag deleted");
+    } catch (err: any) {
+      showToast(err.message || (isZh ? "删除失败" : "Delete failed"));
     }
   };
 
@@ -279,41 +311,63 @@ export default function AdminTags({
   };
 
   // Save Category
-  const handleSaveCategory = () => {
+  const handleSaveCategory = async () => {
     if (!catTitle.trim()) {
       showToast(isZh ? "分类标题不能为空！" : "Category title cannot be empty!");
       return;
     }
     if (!onUpdateCategories) return;
-
-    if (editingCat) {
-      const updated = categories.map(c => c.id === editingCat.id ? {
-        ...c,
-        title: catTitle,
-        desc: catDesc,
-        colorName: catColorName || catTitle,
-        iconType: catIconType
-      } : c);
-      onUpdateCategories(updated);
-      setEditingCat(null);
-    } else {
-      const newCat: Category = {
-        id: catId || "cat-" + Date.now(),
-        title: catTitle,
-        desc: catDesc || (isZh ? "探讨相关的前沿开发技术与工程化细节。" : "Exploring cutting-edge tech and engineering."),
-        colorName: catColorName || catTitle,
-        iconType: catIconType
-      };
-      onUpdateCategories([...categories, newCat]);
-      setIsAddingCat(false);
+    if (!authToken) {
+      showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
+      return;
     }
 
-    // Reset Category form
-    setCatTitle("");
-    setCatDesc("");
-    setCatId("");
-    setCatColorName("");
-    setCatIconType("laptop");
+    try {
+      if (editingCat) {
+        await adminApi.updateCategory(authToken, editingCat.id, {
+          title: catTitle,
+          desc: catDesc,
+          colorName: catColorName || catTitle,
+          iconType: catIconType,
+        });
+        const updated = categories.map(c => c.id === editingCat.id ? {
+          ...c,
+          title: catTitle,
+          desc: catDesc,
+          colorName: catColorName || catTitle,
+          iconType: catIconType
+        } : c);
+        onUpdateCategories(updated);
+        setEditingCat(null);
+      } else {
+        const finalId = catId || "cat-" + Date.now();
+        await adminApi.createCategory(authToken, {
+          id: finalId,
+          title: catTitle,
+          desc: catDesc || (isZh ? "探讨相关的前沿开发技术与工程化细节。" : "Exploring cutting-edge tech and engineering."),
+          colorName: catColorName || catTitle,
+          iconType: catIconType,
+        });
+        const newCat: Category = {
+          id: finalId,
+          title: catTitle,
+          desc: catDesc || (isZh ? "探讨相关的前沿开发技术与工程化细节。" : "Exploring cutting-edge tech and engineering."),
+          colorName: catColorName || catTitle,
+          iconType: catIconType
+        };
+        onUpdateCategories([...categories, newCat]);
+        setIsAddingCat(false);
+      }
+      // Reset Category form
+      setCatTitle("");
+      setCatDesc("");
+      setCatId("");
+      setCatColorName("");
+      setCatIconType("laptop");
+      showToast(isZh ? "分类已保存" : "Category saved");
+    } catch (err: any) {
+      showToast(err.message || (isZh ? "保存失败" : "Save failed"));
+    }
   };
 
   // Delete Category
@@ -325,10 +379,19 @@ export default function AdminTags({
     }
     setDeleteCatId(id);
   };
-  const confirmDeleteCategory = () => {
-    if (deleteCatId && onUpdateCategories) {
+  const confirmDeleteCategory = async () => {
+    if (!deleteCatId || !onUpdateCategories) return;
+    if (!authToken) {
+      showToast(isZh ? "登录已过期，请重新登录" : "Session expired");
+      return;
+    }
+    try {
+      await adminApi.deleteCategory(authToken, deleteCatId);
       onUpdateCategories(categories.filter(c => c.id !== deleteCatId));
       setDeleteCatId(null);
+      showToast(isZh ? "分类已删除" : "Category deleted");
+    } catch (err: any) {
+      showToast(err.message || (isZh ? "删除失败" : "Delete failed"));
     }
   };
 

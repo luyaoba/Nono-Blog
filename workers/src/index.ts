@@ -545,6 +545,94 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json(results || []);
   }
 
+  // ===== 标签管理（管理员） =====
+  // 创建标签
+  if (path === '/api/admin/tags' && method === 'POST') {
+    const body = await request.json() as any;
+    const id = body.id || `tag-${Date.now()}`;
+    const name = (body.name || '').trim();
+    const slug = (body.slug || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const color = (body.color || '').trim();
+    if (!name) return error('标签名称不能为空', 400);
+    if (!slug) return error('标签 Slug 不能为空', 400);
+    const existing = await env.DB.prepare('SELECT 1 FROM tags WHERE slug = ?').bind(slug).first();
+    if (existing) return error('标签 Slug 已存在', 409);
+    await env.DB.prepare('INSERT INTO tags (id, name, slug, color, count) VALUES (?, ?, ?, ?, 0)').bind(id, name, slug, color).run();
+    return json({ id, message: '标签已创建' }, 201);
+  }
+
+  // 更新标签
+  if (path.startsWith('/api/admin/tags/') && method === 'PUT') {
+    const id = path.split('/')[4];
+    const body = await request.json() as any;
+    const existing = await env.DB.prepare('SELECT * FROM tags WHERE id = ?').bind(id).first() as any;
+    if (!existing) return error('标签不存在', 404);
+    const name = (body.name !== undefined ? body.name : existing.name).trim();
+    const rawSlug = body.slug !== undefined ? body.slug : existing.slug;
+    const slug = (rawSlug || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const color = body.color !== undefined ? body.color : (existing.color || '');
+    if (!name) return error('标签名称不能为空', 400);
+    if (!slug) return error('标签 Slug 不能为空', 400);
+    const conflict = await env.DB.prepare('SELECT 1 FROM tags WHERE slug = ? AND id != ?').bind(slug, id).first();
+    if (conflict) return error('标签 Slug 已存在', 409);
+    await env.DB.prepare('UPDATE tags SET name = ?, slug = ?, color = ? WHERE id = ?').bind(name, slug, color, id).run();
+    return json({ message: '标签已更新' });
+  }
+
+  // 删除标签（若已有文章关联则禁止删除）
+  if (path.startsWith('/api/admin/tags/') && method === 'DELETE') {
+    const id = path.split('/')[4];
+    const linked = await env.DB.prepare('SELECT 1 FROM article_tags WHERE tag_id = ? LIMIT 1').bind(id).first();
+    if (linked) return error('该标签下有关联文章，无法删除', 400);
+    await env.DB.prepare('DELETE FROM tags WHERE id = ?').bind(id).run();
+    return json({ message: '标签已删除' });
+  }
+
+  // ===== 分类管理（管理员） =====
+  // 创建分类
+  if (path === '/api/admin/categories' && method === 'POST') {
+    const body = await request.json() as any;
+    const id = (body.id || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const title = (body.title || '').trim();
+    const description = (body.description !== undefined ? body.description : body.desc || '').trim();
+    const colorName = (body.colorName || '').trim();
+    const iconType = (body.iconType || 'laptop').trim();
+    if (!id) return error('分类 ID 不能为空', 400);
+    if (!title) return error('分类名称不能为空', 400);
+    const existing = await env.DB.prepare('SELECT 1 FROM categories WHERE id = ?').bind(id).first();
+    if (existing) return error('分类 ID 已存在', 409);
+    await env.DB.prepare('INSERT INTO categories (id, title, description, color_name, icon_type) VALUES (?, ?, ?, ?, ?)')
+      .bind(id, title, description, colorName, iconType).run();
+    return json({ id, message: '分类已创建' }, 201);
+  }
+
+  // 更新分类
+  if (path.startsWith('/api/admin/categories/') && method === 'PUT') {
+    const id = path.split('/')[4];
+    const body = await request.json() as any;
+    const existing = await env.DB.prepare('SELECT * FROM categories WHERE id = ?').bind(id).first() as any;
+    if (!existing) return error('分类不存在', 404);
+    const title = (body.title !== undefined ? body.title : existing.title).trim();
+    const description = body.description !== undefined ? body.description : (body.desc !== undefined ? body.desc : (existing.description || ''));
+    const colorName = body.colorName !== undefined ? body.colorName : (existing.color_name || '');
+    const iconType = body.iconType !== undefined ? body.iconType : (existing.icon_type || 'laptop');
+    if (!title) return error('分类名称不能为空', 400);
+    await env.DB.prepare('UPDATE categories SET title = ?, description = ?, color_name = ?, icon_type = ? WHERE id = ?')
+      .bind(title, description, colorName, iconType, id).run();
+    return json({ message: '分类已更新' });
+  }
+
+  // 删除分类（若已有文章使用该分类则禁止删除）
+  if (path.startsWith('/api/admin/categories/') && method === 'DELETE') {
+    const id = path.split('/')[4];
+    const category = await env.DB.prepare('SELECT title FROM categories WHERE id = ?').bind(id).first() as any;
+    if (!category) return error('分类不存在', 404);
+    const linked = await env.DB.prepare('SELECT 1 FROM articles WHERE category = ? OR category = ? LIMIT 1').bind(id, category.title).first();
+    if (linked) return error('该分类下有关联文章，无法删除', 400);
+    await env.DB.prepare('DELETE FROM categories WHERE id = ?').bind(id).run();
+    return json({ message: '分类已删除' });
+  }
+
   return error('未找到接口', 404);
 }
 
@@ -556,10 +644,10 @@ async function handleImage(request: Request, env: Env): Promise<Response> {
   if (!object) return new Response('Not Found', { status: 404 });
   const headers = new Headers();
   if (object.httpMetadata?.contentType) headers.set('Content-Type', object.httpMetadata.contentType);
-  // 强缓存：1年 + immutable（内容不变，浏览器不重复请求）
-  headers.set('Cache-Control', 'public, max-age=31536000, immutable');
-  // Cloudflare CDN 缓存 30 天
-  headers.set('CDN-Cache-Control', 'public, max-age=2592000');
+  // 图片 URL 含时间戳，可长期缓存；但保留重新验证能力，便于删除后及时失效
+  headers.set('Cache-Control', 'public, max-age=2592000, stale-while-revalidate=86400');
+  // Cloudflare CDN 缓存 7 天，便于管理和刷新
+  headers.set('CDN-Cache-Control', 'public, max-age=604800');
   // 安全头：防止 SVG/HTML 被当作可执行文档渲染
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('X-Frame-Options', 'DENY');

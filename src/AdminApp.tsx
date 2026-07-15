@@ -182,6 +182,7 @@ export default function AdminApp() {
             onUpdateTags={setTags}
             categories={categories}
             onUpdateCategories={setCategories}
+            authToken={authToken}
             language={language}
             theme={theme}
           />
