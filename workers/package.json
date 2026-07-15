@@ -8,6 +8,7 @@
     "seed": "wrangler d1 execute blog_db --remote --file=migrations/0001_init.sql && wrangler d1 execute blog_db --remote --file=migrations/0002_seed.sql"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
     "typescript": "~5.8.2",
     "wrangler": "^4.107.1"
   }

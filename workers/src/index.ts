@@ -65,11 +65,65 @@ function base64UrlDecode(s: string): ArrayBuffer {
   return buf.buffer;
 }
 
+// ===== 密码哈希（PBKDF2-SHA256）=====
+const PBKDF2_ITERATIONS = 100000;
+const HASH_PREFIX = '$pbkdf2$';
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveKey']),
+    { name: 'HMAC', hash: 'SHA-256', length: 256 },
+    true,
+    ['sign']
+  );
+  const hash = new Uint8Array(await crypto.subtle.exportKey('raw', key) as ArrayBuffer);
+  const saltB64 = btoa(String.fromCharCode(...salt));
+  const hashB64 = btoa(String.fromCharCode(...hash));
+  return `${HASH_PREFIX}${PBKDF2_ITERATIONS}$${saltB64}$${hashB64}`;
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (!stored.startsWith(HASH_PREFIX)) {
+    // Legacy plaintext password: compare directly
+    return password === stored;
+  }
+  const parts = stored.slice(HASH_PREFIX.length).split('$');
+  if (parts.length !== 3) return false;
+  const iterations = parseInt(parts[0], 10);
+  const salt = new Uint8Array([...atob(parts[1])].map(c => c.charCodeAt(0)));
+  const expectedHash = new Uint8Array([...atob(parts[2])].map(c => c.charCodeAt(0)));
+  const key = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    await crypto.subtle.importKey('raw', new TextEncoder().encode(password), { name: 'PBKDF2' }, false, ['deriveKey']),
+    { name: 'HMAC', hash: 'SHA-256', length: 256 },
+    true,
+    ['sign']
+  );
+  const actualHash = new Uint8Array(await crypto.subtle.exportKey('raw', key) as ArrayBuffer);
+  if (expectedHash.length !== actualHash.length) return false;
+  let same = 0;
+  for (let i = 0; i < expectedHash.length; i++) same |= expectedHash[i] ^ actualHash[i];
+  return same === 0;
+}
+
 // IP 哈希（不存储原始 IP，只存哈希值）
 async function hashIp(ip: string): Promise<string> {
   const data = new TextEncoder().encode(ip + '_nono_salt');
   const hash = await crypto.subtle.digest('SHA-256', data);
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
+}
+
+// 从文章内容和封面图中提取所有 R2 image key
+function extractImageKeys(content: string, coverImage: string): string[] {
+  const keys: string[] = [];
+  const urlPattern = /\/api\/images\/([^\s\)"']+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = urlPattern.exec(content)) !== null) keys.push(m[1]);
+  const coverMatch = coverImage.match(/\/api\/images\/(.+)$/);
+  if (coverMatch) keys.push(coverMatch[1]);
+  return [...new Set(keys)];
 }
 
 // ===== 路由处理 =====
@@ -204,8 +258,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const body = await request.json() as any;
     const user = await env.DB.prepare('SELECT * FROM admin_users WHERE username = ?').bind(body.username).first() as any;
     if (!user) return error('用户名或密码错误', 401);
-    // 简单密码比对（生产环境应使用 bcrypt）
-    if (body.password !== user.password_hash) return error('用户名或密码错误', 401);
+    const valid = await verifyPassword(body.password, user.password_hash);
+    if (!valid) return error('用户名或密码错误', 401);
+    // Migrate legacy plaintext password to hash on successful login
+    if (!user.password_hash.startsWith(HASH_PREFIX)) {
+      await env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?')
+        .bind(await hashPassword(body.password), user.username).run();
+    }
     const token = await signJwt({ sub: user.username, exp: Math.floor(Date.now() / 1000) + 604800 }, env.JWT_SECRET);
     return json({ token, username: user.username });
   }
@@ -279,6 +338,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const status = body.status !== undefined ? body.status : existing.status;
     const coverImage = body.coverImage !== undefined ? body.coverImage : (existing.cover_image || '');
     const date = body.date !== undefined ? body.date : existing.date;
+    // Clean up old cover image from R2 if replaced
+    if (coverImage !== existing.cover_image && existing.cover_image?.includes('/api/images/')) {
+      const oldKey = existing.cover_image.match(/\/api\/images\/(.+)$/)?.[1];
+      if (oldKey) {
+        try { await env.IMAGES.delete(oldKey); } catch {}
+      }
+    }
     await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, date=?, updated_at=? WHERE id=?')
       .bind(title, summary, content || '', category, readTime, gradient, thumbnailType, status, coverImage, date, new Date().toISOString(), id).run();
     // 更新标签关联（仅当传入 tags 时）
@@ -295,6 +361,13 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // 删除文章
   if (path.startsWith('/api/admin/articles/') && method === 'DELETE') {
     const id = path.split('/')[4];
+    const article = await env.DB.prepare('SELECT content, cover_image FROM articles WHERE id = ?').bind(id).first() as any;
+    if (article) {
+      const keys = extractImageKeys(article.content || '', article.cover_image || '');
+      for (const key of keys) {
+        try { await env.IMAGES.delete(key); } catch {}
+      }
+    }
     await env.DB.prepare('DELETE FROM article_tags WHERE article_id = ?').bind(id).run();
     await env.DB.prepare('DELETE FROM articles WHERE id = ?').bind(id).run();
     return json({ message: '文章已删除' });
@@ -312,9 +385,11 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // 上传图片到 R2
   if (path === '/api/admin/upload' && method === 'POST') {
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file') as unknown as File;
     if (!file) return error('缺少文件');
     if (file.size > 5 * 1024 * 1024) return error('文件大小不能超过 5MB');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) return error('仅支持 JPG/PNG/WebP/GIF/SVG 图片');
     const ext = file.name.split('.').pop() || 'jpg';
     const key = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     await env.IMAGES.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
@@ -328,25 +403,23 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const range = url.searchParams.get('range') || 'week'; // week | month | year | all | custom
     const startDate = url.searchParams.get('start');
     const endDate = url.searchParams.get('end');
-    let dateFilter = '';
+    let stmt = env.DB.prepare('SELECT date, SUM(views) as total FROM daily_views WHERE 1=1 GROUP BY date ORDER BY date');
     if (range === 'custom' && startDate && endDate) {
-      dateFilter = ` AND date >= '${startDate}' AND date <= '${endDate}'`;
+      stmt = env.DB.prepare('SELECT date, SUM(views) as total FROM daily_views WHERE date >= ? AND date <= ? GROUP BY date ORDER BY date').bind(startDate, endDate);
     } else if (range === 'week') {
       const d = new Date();
       d.setDate(d.getDate() - 7);
-      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+      stmt = env.DB.prepare('SELECT date, SUM(views) as total FROM daily_views WHERE date >= ? GROUP BY date ORDER BY date').bind(d.toISOString().slice(0, 10));
     } else if (range === 'month') {
       const d = new Date();
       d.setDate(d.getDate() - 30);
-      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+      stmt = env.DB.prepare('SELECT date, SUM(views) as total FROM daily_views WHERE date >= ? GROUP BY date ORDER BY date').bind(d.toISOString().slice(0, 10));
     } else if (range === 'year') {
       const d = new Date();
       d.setFullYear(d.getFullYear() - 1);
-      dateFilter = ` AND date >= '${d.toISOString().slice(0, 10)}'`;
+      stmt = env.DB.prepare('SELECT date, SUM(views) as total FROM daily_views WHERE date >= ? GROUP BY date ORDER BY date').bind(d.toISOString().slice(0, 10));
     }
-    const { results } = await env.DB.prepare(
-      `SELECT date, SUM(views) as total FROM daily_views WHERE 1=1${dateFilter} GROUP BY date ORDER BY date`
-    ).all();
+    const { results } = await stmt.all();
     return json(results || []);
   }
 
