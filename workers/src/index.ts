@@ -197,13 +197,11 @@ async function isImageKeyReferenced(env: Env, excludeArticleId: string, key: str
 
 // ===== 路由处理 =====
 async function handleRequest(request: Request, env: Env): Promise<Response> {
-  // CORS 预检
+  // CORS 预检（与 getCorsHeaders 保持一致，避免绕过管理员路由限制）
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        ...getCorsHeaders(request),
         'Access-Control-Max-Age': '86400',
       },
     });
@@ -231,7 +229,8 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const id = path.split('/')[3];
     const article = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
     if (!article) return error('文章不存在', 404);
-    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+    const clientIp = getClientIp(request);
+    const ipHash = await hashIp(clientIp);
     const liked = await env.DB.prepare('SELECT 1 FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first();
     return json({ likes: article.likes || 0, liked: !!liked });
   }
@@ -243,15 +242,19 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       return error('操作过于频繁，请稍后再试', 429);
     }
     const id = path.split('/')[3];
-    const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
+    const ipHash = await hashIp(clientIp);
     // 检查 24 小时内是否已赞
     const existing = await env.DB.prepare('SELECT created_at FROM article_likes_ip WHERE article_id = ? AND ip_hash = ?').bind(id, ipHash).first() as any;
     if (existing) {
       const hours = (Date.now() - new Date(existing.created_at + 'Z').getTime()) / 3600000;
       if (hours < 24) return error('24小时内只能点赞一次', 429);
     }
-    await env.DB.prepare('INSERT OR REPLACE INTO article_likes_ip (article_id, ip_hash) VALUES (?, ?)').bind(id, ipHash).run();
-    await env.DB.prepare('UPDATE articles SET likes = likes + 1 WHERE id = ?').bind(id).run();
+    // 原子操作：INSERT OR IGNORE 防止竞态条件（已存在则不插入）
+    const insertResult = await env.DB.prepare('INSERT OR IGNORE INTO article_likes_ip (article_id, ip_hash) VALUES (?, ?)').bind(id, ipHash).run();
+    // 仅当实际插入了新行时才增加点赞数
+    if (insertResult.meta?.changes === 1) {
+      await env.DB.prepare('UPDATE articles SET likes = likes + 1 WHERE id = ?').bind(id).run();
+    }
     const updated = await env.DB.prepare('SELECT likes FROM articles WHERE id = ?').bind(id).first() as any;
     return json({ likes: updated.likes, liked: true });
   }
@@ -467,17 +470,28 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json({ message: '文章已删除' });
   }
 
-  // 更新站点配置
+  // 更新站点配置（仅允许白名单键）
   if (path === '/api/admin/settings' && method === 'PUT') {
+    const ALLOWED_SETTINGS_KEYS = [
+      'site_title', 'site_subtitle', 'hero_title', 'hero_subtitle', 'about_text',
+      'github_url', 'email', 'categories_title', 'tags_title', 'articles_title',
+      'contact_title', 'hero_background', 'favicon', 'giscus_repo', 'giscus_repo_id',
+      'giscus_category_id', 'giscus_mapping', 'giscus_theme',
+    ];
     const body = await request.json() as Record<string, string>;
     for (const [key, value] of Object.entries(body)) {
+      if (!ALLOWED_SETTINGS_KEYS.includes(key)) continue;
       await env.DB.prepare('INSERT OR REPLACE INTO site_settings (key, value) VALUES (?, ?)').bind(key, value).run();
     }
     return json({ message: '配置已更新' });
   }
 
-  // 上传图片到 R2
+  // 上传图片到 R2（限速 60 张/小时）
   if (path === '/api/admin/upload' && method === 'POST') {
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(clientIp, 'upload', 60, 60 * 60 * 1000)) {
+      return error('上传过于频繁，请稍后再试', 429);
+    }
     const formData = await request.formData();
     const file = formData.get('file') as unknown as File;
     if (!file) return error('缺少文件');
