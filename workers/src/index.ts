@@ -115,6 +115,35 @@ async function hashIp(ip: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 }
 
+// ===== 简单内存速率限制（按 Worker 实例隔离，可拦截基础滥用） =====
+interface RateLimitRecord { count: number; resetAt: number; }
+const rateLimitMap = new Map<string, RateLimitRecord>();
+
+function cleanupRateLimit(): void {
+  const now = Date.now();
+  for (const [key, rec] of rateLimitMap.entries()) {
+    if (now > rec.resetAt) rateLimitMap.delete(key);
+  }
+}
+
+function checkRateLimit(ip: string, action: string, max: number, windowMs: number): boolean {
+  if (rateLimitMap.size > 5000) cleanupRateLimit();
+  const key = `${ip}:${action}`;
+  const now = Date.now();
+  const rec = rateLimitMap.get(key);
+  if (!rec || now > rec.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (rec.count >= max) return false;
+  rec.count++;
+  return true;
+}
+
+function getClientIp(request: Request): string {
+  return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() || '0.0.0.0';
+}
+
 // 从文章内容和封面图中提取所有 R2 image key
 function extractImageKeys(content: string, coverImage: string): string[] {
   const keys: string[] = [];
@@ -124,6 +153,16 @@ function extractImageKeys(content: string, coverImage: string): string[] {
   const coverMatch = coverImage.match(/\/api\/images\/(.+)$/);
   if (coverMatch) keys.push(coverMatch[1]);
   return [...new Set(keys)];
+}
+
+// 检查某个 image key 是否还被其他文章引用
+async function isImageKeyReferenced(env: Env, excludeArticleId: string, key: string): Promise<boolean> {
+  const pattern = `%/api/images/${key}%`;
+  const exact = `/api/images/${key}`;
+  const ref = await env.DB.prepare(
+    'SELECT 1 FROM articles WHERE id != ? AND (content LIKE ? OR cover_image = ?) LIMIT 1'
+  ).bind(excludeArticleId, pattern, exact).first();
+  return !!ref;
 }
 
 // ===== 路由处理 =====
@@ -169,6 +208,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   // 点赞文章（IP 去重，24小时后可再次点赞）
   if (path.match(/^\/api\/articles\/[^/]+\/like$/) && method === 'POST') {
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(clientIp, 'like', 30, 60 * 60 * 1000)) {
+      return error('操作过于频繁，请稍后再试', 429);
+    }
     const id = path.split('/')[3];
     const ipHash = await hashIp(request.headers.get('CF-Connecting-IP') || '0.0.0.0');
     // 检查 24 小时内是否已赞
@@ -236,6 +279,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   // 提交评论（访客）
   if (path === '/api/comments' && method === 'POST') {
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(clientIp, 'comment', 20, 60 * 60 * 1000)) {
+      return error('评论过于频繁，请稍后再试', 429);
+    }
     const body = await request.json() as any;
     if (!body.author || !body.content || !body.articleId) return error('昵称、内容和文章ID为必填');
     const id = `c-${Date.now()}`;
@@ -255,6 +302,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   // 管理员登录
   if (path === '/api/auth/login' && method === 'POST') {
+    const clientIp = getClientIp(request);
+    if (!checkRateLimit(clientIp, 'login', 5, 15 * 60 * 1000)) {
+      return error('请求过于频繁，请 15 分钟后重试', 429);
+    }
     const body = await request.json() as any;
     const user = await env.DB.prepare('SELECT * FROM admin_users WHERE username = ?').bind(body.username).first() as any;
     if (!user) return error('用户名或密码错误', 401);
@@ -347,6 +398,16 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     }
     await env.DB.prepare('UPDATE articles SET title=?, summary=?, content=?, category=?, read_time=?, gradient=?, thumbnail_type=?, status=?, cover_image=?, date=?, updated_at=? WHERE id=?')
       .bind(title, summary, content || '', category, readTime, gradient, thumbnailType, status, coverImage, date, new Date().toISOString(), id).run();
+    // 清理正文中被移除且未被其他文章引用的图片
+    const oldKeys = extractImageKeys(existing.content || '', existing.cover_image || '');
+    const newKeys = extractImageKeys(content || '', coverImage || '');
+    const removedKeys = oldKeys.filter(k => !newKeys.includes(k));
+    for (const key of removedKeys) {
+      const stillUsed = await isImageKeyReferenced(env, id, key);
+      if (!stillUsed) {
+        try { await env.IMAGES.delete(key); } catch {}
+      }
+    }
     // 更新标签关联（仅当传入 tags 时）
     if (body.tags !== undefined && Array.isArray(body.tags)) {
       await env.DB.prepare('DELETE FROM article_tags WHERE article_id = ?').bind(id).run();
