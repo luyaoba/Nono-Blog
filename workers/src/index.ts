@@ -52,6 +52,7 @@ function getCorsHeaders(request: Request): HeadersInit {
 
 // 从 Authorization header 中提取并验证 JWT
 async function verifyAuth(request: Request, secret: string): Promise<{ sub: string } | null> {
+  if (!secret || secret.length < 32) return null;
   const header = request.headers.get('Authorization');
   if (!header?.startsWith('Bearer ')) return null;
   try {
@@ -65,6 +66,7 @@ async function verifyAuth(request: Request, secret: string): Promise<{ sub: stri
     if (!valid) return null;
     const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(payloadB64)));
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!payload.sub || typeof payload.sub !== 'string') return null;
     return payload;
   } catch {
     return null;
@@ -73,6 +75,7 @@ async function verifyAuth(request: Request, secret: string): Promise<{ sub: stri
 
 // 签发 JWT
 async function signJwt(payload: object, secret: string): Promise<string> {
+  if (!secret || secret.length < 32) throw new Error('JWT_SECRET 无效');
   const header = { alg: 'HS256', typ: 'JWT' };
   const enc = (obj: object) => base64UrlEncode(new TextEncoder().encode(JSON.stringify(obj)));
   const headerB64 = enc(header);
@@ -174,6 +177,23 @@ function getClientIp(request: Request): string {
   return request.headers.get('CF-Connecting-IP') || request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim() || '0.0.0.0';
 }
 
+// 校验写操作请求是否来自受信任的前端域名（防止 CSRF）
+function isTrustedWriteOrigin(request: Request): boolean {
+  const origin = request.headers.get('Origin') || request.headers.get('Referer') || '';
+  if (!origin) return false;
+  try {
+    const host = new URL(origin).host;
+    // 允许 localhost 开发环境和主站/Worker 同 eTLD+1
+    if (host.startsWith('localhost:')) return true;
+    const requestHost = new URL(request.url).host;
+    if (host === requestHost) return true;
+    const domain = (h: string) => h.split('.').slice(-2).join('.');
+    return domain(host) === domain(requestHost);
+  } catch {
+    return false;
+  }
+}
+
 // 从文章内容和封面图中提取所有 R2 image key
 function extractImageKeys(content: string, coverImage: string): string[] {
   const keys: string[] = [];
@@ -237,6 +257,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
 
   // 点赞文章（IP 去重，24小时后可再次点赞）
   if (path.match(/^\/api\/articles\/[^/]+\/like$/) && method === 'POST') {
+    if (!isTrustedWriteOrigin(request)) return error('请求来源不合法', 403);
     const clientIp = getClientIp(request);
     if (!checkRateLimit(clientIp, 'like', 30, 60 * 60 * 1000)) {
       return error('操作过于频繁，请稍后再试', 429);
@@ -300,35 +321,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     return json(results || []);
   }
 
-  // 获取已审核评论（按文章）
-  if (path === '/api/comments' && method === 'GET') {
-    const articleId = url.searchParams.get('articleId');
-    if (articleId) {
-      const { results } = await env.DB.prepare('SELECT * FROM comments WHERE article_id = ? AND status = ? ORDER BY date DESC').bind(articleId, 'approved').all();
-      return json(results || []);
-    }
-    return error('缺少 articleId 参数');
-  }
-
-  // 提交评论（访客）
-  if (path === '/api/comments' && method === 'POST') {
-    const clientIp = getClientIp(request);
-    if (!checkRateLimit(clientIp, 'comment', 20, 60 * 60 * 1000)) {
-      return error('评论过于频繁，请稍后再试', 429);
-    }
-    const body = await request.json() as any;
-    if (!body.author || !body.content || !body.articleId) return error('昵称、内容和文章ID为必填');
-    if (typeof body.author !== 'string' || body.author.length > 50) return error('昵称过长');
-    if (typeof body.content !== 'string' || body.content.length > 2000) return error('评论内容过长');
-    if (body.email && (typeof body.email !== 'string' || body.email.length > 100)) return error('邮箱过长');
-    if (body.articleTitle && (typeof body.articleTitle !== 'string' || body.articleTitle.length > 200)) return error('文章标题过长');
-    const id = `c-${Date.now()}`;
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
-    await env.DB.prepare('INSERT INTO comments (id, author, email, article_id, article_title, content, date, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, body.author, body.email || '', body.articleId, body.articleTitle || '', body.content, now, 'pending').run();
-    return json({ id, message: '评论已提交，等待审核' }, 201);
-  }
-
   // 获取站点配置
   if (path === '/api/settings' && method === 'GET') {
     const { results } = await env.DB.prepare('SELECT key, value FROM site_settings').all();
@@ -370,29 +362,6 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
       article.tags = (tags.results || []).map((t: any) => t.name);
     }
     return json(articles);
-  }
-
-  // 获取所有评论（含待审核）
-  if (path === '/api/admin/comments' && method === 'GET') {
-    const { results } = await env.DB.prepare('SELECT * FROM comments ORDER BY date DESC').all();
-    return json(results || []);
-  }
-
-  // 审核评论
-  if (path.startsWith('/api/admin/comments/') && method === 'PUT') {
-    const id = path.split('/')[4];
-    const body = await request.json() as any;
-    const ALLOWED_COMMENT_STATUSES = ['approved', 'pending', 'spam'];
-    if (!ALLOWED_COMMENT_STATUSES.includes(body.status)) return error('无效的评论状态', 400);
-    await env.DB.prepare('UPDATE comments SET status = ? WHERE id = ?').bind(body.status, id).run();
-    return json({ message: '已更新' });
-  }
-
-  // 删除评论
-  if (path.startsWith('/api/admin/comments/') && method === 'DELETE') {
-    const id = path.split('/')[4];
-    await env.DB.prepare('DELETE FROM comments WHERE id = ?').bind(id).run();
-    return json({ message: '已删除' });
   }
 
   // 创建文章
@@ -480,10 +449,21 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
   // 更新站点配置（仅允许白名单键）
   if (path === '/api/admin/settings' && method === 'PUT') {
     const ALLOWED_SETTINGS_KEYS = [
-      'site_title', 'site_subtitle', 'hero_title', 'hero_subtitle', 'about_text',
-      'github_url', 'email', 'categories_title', 'tags_title', 'articles_title',
-      'contact_title', 'hero_background', 'favicon', 'giscus_repo', 'giscus_repo_id',
-      'giscus_category_id', 'giscus_mapping', 'giscus_theme',
+      'nickname', 'title', 'avatarUrl', 'bio',
+      'siteTitle', 'siteSlogan', 'siteDescription', 'homeImage',
+      'github', 'mail', 'twitter', 'location', 'siteNotice',
+      'siteSloganEn',
+      'categoriesTitle', 'categoriesSubtitle', 'categoriesTitleEn', 'categoriesSubtitleEn',
+      'tagsTitle', 'tagsSubtitle', 'tagsTitleEn', 'tagsSubtitleEn',
+      'heroTitle', 'heroSubtitle', 'heroTitleEn', 'heroSubtitleEn',
+      'articlesTitle', 'articlesSubtitle', 'articlesTitleEn', 'articlesSubtitleEn',
+      'aboutStatsValue1', 'aboutStatsLabel1', 'aboutStatsLabel1En',
+      'aboutStatsValue2', 'aboutStatsLabel2', 'aboutStatsLabel2En',
+      'aboutStatsValue3', 'aboutStatsLabel3', 'aboutStatsLabel3En',
+      'aboutFocusTitle', 'aboutFocusTitleEn',
+      'aboutFocus1Title', 'aboutFocus1TitleEn', 'aboutFocus1Desc', 'aboutFocus1DescEn',
+      'aboutFocus2Title', 'aboutFocus2TitleEn', 'aboutFocus2Desc', 'aboutFocus2DescEn',
+      'aboutFocus3Title', 'aboutFocus3TitleEn', 'aboutFocus3Desc', 'aboutFocus3DescEn',
     ];
     const body = await request.json() as Record<string, string>;
     for (const [key, value] of Object.entries(body)) {
@@ -676,10 +656,6 @@ async function handleImage(request: Request, env: Env): Promise<Response> {
 // ===== 入口 =====
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    // 安全迁移：确保 articles 表有 created_at / updated_at 字段
-    try { await env.DB.prepare('ALTER TABLE articles ADD COLUMN created_at TEXT').run(); } catch {}
-    try { await env.DB.prepare('ALTER TABLE articles ADD COLUMN updated_at TEXT').run(); } catch {}
-
     const url = new URL(request.url);
     if (url.pathname.startsWith('/api/images/')) {
       const response = await handleImage(request, env);
