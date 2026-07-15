@@ -10,7 +10,6 @@ coverage/
 assets/.aistudio/
 .qoder/
 Nono-Blog/
-workers/wrangler.toml
 
 workers/.wrangler/
 

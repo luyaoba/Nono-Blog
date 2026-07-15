@@ -1,4 +1,4 @@
-name: Deploy to Cloudflare Pages
+name: Deploy
 
 on:
   push:
@@ -15,11 +15,23 @@ jobs:
           node-version: 20
           cache: npm
 
+      # 前端构建 + 部署到 Cloudflare Pages
       - run: npm ci
       - run: npm run build
-
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=nono-blog --commit-dirty=true
+
+      # Worker 后端部署
+      - name: Install Worker dependencies
+        run: cd workers && npm ci
+        continue-on-error: true
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers
+          command: deploy
+
