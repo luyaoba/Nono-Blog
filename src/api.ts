@@ -115,10 +115,11 @@ export const adminApi = {
     }),
 
   // 图片上传（category: articles / covers / avatars / backgrounds）
-  uploadImage: (token: string, file: File, category: string = 'general') => {
+  uploadImage: (token: string, file: File, category: string = 'general', articleId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('category', category);
+    if (articleId) formData.append('articleId', articleId);
     return fetch(`${API_BASE}/api/admin/upload`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },

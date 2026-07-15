@@ -502,6 +502,10 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const ALLOWED_CATEGORIES = ['articles', 'covers', 'avatars', 'backgrounds', 'general'];
     const rawCategory = (formData.get('category') as string) || 'general';
     const category = ALLOWED_CATEGORIES.includes(rawCategory) ? rawCategory : 'general';
+    // 文章子目录（仅 articles/covers 分类使用，仅允许字母数字和-_）
+    const rawArticleId = (formData.get('articleId') as string) || '';
+    const articleId = rawArticleId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 50);
+    const subDir = (category === 'articles' || category === 'covers') && articleId ? `${articleId}/` : '';
     // 时间戳文件名：YYYYMMDD-HHMMSS-随机hex.ext
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -509,7 +513,7 @@ async function handleRequest(request: Request, env: Env): Promise<Response> {
     const rand = crypto.getRandomValues(new Uint8Array(3));
     const randHex = Array.from(rand).map(b => b.toString(16).padStart(2, '0')).join('');
     const ext = (file.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').slice(0, 5) || 'jpg';
-    const key = `uploads/${category}/${ts}-${randHex}.${ext}`;
+    const key = `uploads/${category}/${subDir}${ts}-${randHex}.${ext}`;
     await env.IMAGES.put(key, file.stream(), { httpMetadata: { contentType: file.type } });
     const origin = new URL(request.url).origin;
     const imageUrl = `${origin}/api/images/${key}`;
